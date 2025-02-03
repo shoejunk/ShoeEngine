@@ -42,6 +42,60 @@ Provides access to the underlying SFML window.
 - **Returns:** Reference to the SFML RenderWindow
 - **Note:** Use with caution as it exposes SFML implementation details
 
+### WindowManager Class
+`ShoeEngine::Graphics::WindowManager`
+
+The WindowManager class manages the creation and lifecycle of Window objects from JSON configuration data. It inherits from BaseManager to integrate with the DataManager system.
+
+#### Constructor
+```cpp
+WindowManager()
+```
+Creates a new WindowManager instance.
+
+#### Methods
+
+##### `bool CreateFromJson(const nlohmann::json& jsonData) override`
+Creates Window objects based on JSON configuration data.
+- **Parameters:**
+  - `jsonData`: JSON object containing window configurations
+- **Returns:** `true` if windows were created successfully, `false` if an error occurred
+
+##### `std::string GetManagedType() const override`
+Returns the type identifier for this manager.
+- **Returns:** `"windows"` as the managed type
+
+##### `bool ProcessEvents()`
+Processes events for all managed windows.
+- **Returns:** `true` if any windows are still open, `false` if all windows are closed
+
+##### `void ClearAll()`
+Clears all managed windows with a black background.
+
+##### `void DisplayAll()`
+Updates all managed windows with any changes since the last call.
+
+##### `const std::vector<std::unique_ptr<Window>>& GetWindows() const`
+Gets all managed window instances.
+- **Returns:** Const reference to the vector of window pointers
+
+#### JSON Configuration Format
+```json
+{
+    "windows": {
+        "window_name": {
+            "title": "Window Title",
+            "width": 800,
+            "height": 600
+        }
+    }
+}
+```
+- **Properties:**
+  - `title`: (string, optional) Window title text, defaults to "ShoeEngine Window"
+  - `width`: (number, optional) Window width in pixels, defaults to 800
+  - `height`: (number, optional) Window height in pixels, defaults to 600
+
 ## Core
 
 ### BaseManager Class

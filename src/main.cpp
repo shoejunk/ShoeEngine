@@ -4,7 +4,8 @@
  */
 
 #include <iostream>
-#include "graphics/Window.h"
+#include "core/DataManager.h"
+#include "graphics/WindowManager.h"
 
 /**
  * @brief Main entry point for the ShoeEngine application
@@ -30,16 +31,29 @@ int main() {
     try {
         std::cout << "ShoeEngine initializing..." << std::endl;
         
-        ShoeEngine::Graphics::Window window("ShoeEngine", 800, 600);
+        // Create and configure the data manager
+        ShoeEngine::Core::DataManager dataManager;
+        auto windowManager = std::make_unique<ShoeEngine::Graphics::WindowManager>();
+        dataManager.RegisterManager(std::move(windowManager));
 
-        while (window.IsOpen()) {
-            if (!window.ProcessEvents()) {
-                break;
-            }
+        // Load game configuration from JSON
+        if (!dataManager.LoadFromFile("data/sample.json")) {
+            throw std::runtime_error("Failed to load game configuration");
+        }
 
-            window.Clear();
+        // Get the window manager back from the data manager
+        auto* winManager = dynamic_cast<ShoeEngine::Graphics::WindowManager*>(
+            dataManager.GetManager("windows"));
+        
+        if (!winManager || winManager->GetWindows().empty()) {
+            throw std::runtime_error("No windows were created from configuration");
+        }
+
+        // Main game loop
+        while (winManager->ProcessEvents()) {
+            winManager->ClearAll();
             // Game rendering will go here
-            window.Display();
+            winManager->DisplayAll();
         }
 
         return 0;

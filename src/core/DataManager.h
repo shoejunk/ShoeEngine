@@ -50,6 +50,13 @@ public:
      */
     bool ProcessData(const nlohmann::json& jsonData);
 
+    /**
+     * @brief Get a registered manager by its type
+     * @param type The type of manager to retrieve
+     * @return BaseManager* Pointer to the manager, or nullptr if not found
+     */
+    BaseManager* GetManager(const std::string& type);
+
 private:
     std::unordered_map<std::string, std::unique_ptr<BaseManager>> m_managers;
 };

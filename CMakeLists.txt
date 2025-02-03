@@ -19,11 +19,9 @@ if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
 endif()
 include(${CPM_DOWNLOAD_LOCATION})
 
-# Add source files
-set(SOURCES
-    src/main.cpp
-    src/graphics/Window.cpp
-    src/core/DataManager.cpp
+# Find all source files recursively
+file(GLOB_RECURSE SOURCES
+    "src/*.cpp"
 )
 
 # Add SFML dependency
@@ -97,13 +95,16 @@ CPMAddPackage(
         "gtest_force_shared_crt ON"
 )
 
-# Add test executable
-set(TEST_SOURCES
-    tests/graphics/WindowTests.cpp
-    tests/core/DataManagerTests.cpp
-    src/graphics/Window.cpp
-    src/core/DataManager.cpp
+# Find all test source files recursively
+file(GLOB_RECURSE TEST_SOURCES
+    "tests/*.cpp"
 )
+
+# Add source files to test sources as well
+list(APPEND TEST_SOURCES ${SOURCES})
+
+# Exclude main.cpp from test sources
+list(FILTER TEST_SOURCES EXCLUDE REGEX ".*main\\.cpp$")
 
 add_executable(${PROJECT_NAME}_tests ${TEST_SOURCES})
 target_link_libraries(${PROJECT_NAME}_tests PRIVATE

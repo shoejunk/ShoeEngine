@@ -1,4 +1,16 @@
 {
+    "windows": {
+        "main_window": {
+            "title": "ShoeEngine Game",
+            "width": 800,
+            "height": 600
+        },
+        "debug_window": {
+            "title": "Debug Console",
+            "width": 400,
+            "height": 300
+        }
+    },
     "sprites": {
         "player": {
             "texture": "player.png",
