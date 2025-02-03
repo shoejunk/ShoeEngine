@@ -4,35 +4,29 @@
             "title": "ShoeEngine Game",
             "width": 800,
             "height": 600
-        },
-        "debug_window": {
-            "title": "Debug Console",
-            "width": 400,
-            "height": 300
+        }
+    },
+    "images": {
+        "player_image": {
+            "file": "data/images/player.png"
         }
     },
     "sprites": {
-        "player": {
-            "texture": "player.png",
-            "frameWidth": 32,
-            "frameHeight": 32,
-            "animations": {
-                "idle": {
-                    "frames": [0, 1, 2, 3],
-                    "frameTime": 0.1
-                },
-                "walk": {
-                    "frames": [4, 5, 6, 7],
-                    "frameTime": 0.08
-                }
+        "player_sprite": {
+            "image": "player_image",
+            "position": {
+                "x": 400,
+                "y": 300
+            },
+            "rotation": 0,
+            "scale": {
+                "x": 2,
+                "y": 2
+            },
+            "origin": {
+                "x": 16,
+                "y": 16
             }
-        }
-    },
-    "textures": {
-        "player.png": {
-            "path": "textures/player.png",
-            "smooth": true,
-            "repeated": false
         }
     }
 }

@@ -96,6 +96,132 @@ Gets all managed window instances.
   - `width`: (number, optional) Window width in pixels, defaults to 800
   - `height`: (number, optional) Window height in pixels, defaults to 600
 
+### Image Class
+`ShoeEngine::Graphics::Image`
+
+The Image class provides a wrapper around SFML's image functionality, allowing for loading and manipulation of image data.
+
+#### Constructor
+```cpp
+Image(const uint8_t* pixels, unsigned int width, unsigned int height)
+```
+Creates a new image from raw pixel data.
+- **Parameters:**
+  - `pixels`: Raw pixel data in RGBA format
+  - `width`: Image width in pixels
+  - `height`: Image height in pixels
+
+#### Methods
+
+##### `bool LoadFromFile(const std::string& filename)`
+Loads an image from a file.
+- **Parameters:**
+  - `filename`: Path to the image file
+- **Returns:** `true` if loading was successful
+
+##### `bool SaveToFile(const std::string& filename)`
+Saves the image to a file.
+- **Parameters:**
+  - `filename`: Path to save the image to
+- **Returns:** `true` if saving was successful
+
+### ImageManager Class
+`ShoeEngine::Graphics::ImageManager`
+
+The ImageManager class manages the creation and storage of Image objects from JSON configuration data.
+
+#### Methods
+
+##### `bool CreateFromJson(const nlohmann::json& jsonData)`
+Creates images from JSON configuration data.
+- **Parameters:**
+  - `jsonData`: JSON data containing image definitions
+- **Returns:** `true` if creation was successful
+
+##### `const Image* GetImage(const std::string& imageId) const`
+Retrieves an image by its ID.
+- **Parameters:**
+  - `imageId`: Unique identifier for the image
+- **Returns:** Pointer to the Image object, or nullptr if not found
+
+### Sprite Class
+`ShoeEngine::Graphics::Sprite`
+
+The Sprite class wraps SFML's sprite functionality, providing methods for sprite transformation and rendering.
+
+#### Methods
+
+##### `void SetPosition(float x, float y)`
+Sets the position of the sprite.
+- **Parameters:**
+  - `x`: X coordinate
+  - `y`: Y coordinate
+
+##### `void SetRotation(float angle)`
+Sets the rotation of the sprite.
+- **Parameters:**
+  - `angle`: Rotation angle in degrees
+
+##### `void SetScale(float x, float y)`
+Sets the scale factors of the sprite.
+- **Parameters:**
+  - `x`: Horizontal scale factor
+  - `y`: Vertical scale factor
+
+##### `void SetOrigin(float x, float y)`
+Sets the origin point of the sprite for transformations.
+- **Parameters:**
+  - `x`: X coordinate of the origin
+  - `y`: Y coordinate of the origin
+
+### SpriteManager Class
+`ShoeEngine::Graphics::SpriteManager`
+
+The SpriteManager class manages the creation and storage of Sprite objects from JSON configuration data.
+
+#### Methods
+
+##### `bool CreateFromJson(const nlohmann::json& jsonData)`
+Creates sprites from JSON configuration data.
+- **Parameters:**
+  - `jsonData`: JSON data containing sprite definitions
+- **Returns:** `true` if creation was successful
+
+##### `const Sprite* GetSprite(const std::string& spriteId) const`
+Retrieves a sprite by its ID.
+- **Parameters:**
+  - `spriteId`: Unique identifier for the sprite
+- **Returns:** Pointer to the Sprite object, or nullptr if not found
+
+#### JSON Configuration Format
+```json
+{
+    "images": {
+        "image_id": {
+            "file": "path/to/image.png"
+        }
+    },
+    "sprites": {
+        "sprite_id": {
+            "image": "image_id",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "rotation": 0,
+            "scale": {
+                "x": 1,
+                "y": 1
+            },
+            "origin": {
+                "x": 0,
+                "y": 0
+            }
+        }
+    }
+}
+```
+
 ## Core
 
 ### BaseManager Class

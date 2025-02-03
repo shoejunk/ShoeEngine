@@ -81,6 +81,40 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         $<TARGET_FILE_DIR:${PROJECT_NAME}>/data
 )
 
+# Copy sample.json to build output
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/data/sample.json
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/data/sample.json
+)
+
+# Create test image generator executable
+add_executable(CreateTestImage tests/graphics/CreateTestImage.cpp ${SOURCES})
+target_link_libraries(CreateTestImage PRIVATE
+    sfml-system
+    sfml-window
+    sfml-graphics
+    sfml-audio
+    sfml-network
+    nlohmann_json::nlohmann_json
+)
+
+# Set output directories for CreateTestImage
+set_target_properties(CreateTestImage PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+# Copy SFML DLLs for CreateTestImage
+add_custom_command(TARGET CreateTestImage POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:sfml-system>
+        $<TARGET_FILE:sfml-window>
+        $<TARGET_FILE:sfml-graphics>
+        $<TARGET_FILE:sfml-audio>
+        $<TARGET_FILE:sfml-network>
+        $<TARGET_FILE_DIR:CreateTestImage>
+)
+
 # Enable testing
 enable_testing()
 
