@@ -22,15 +22,98 @@ include(${CPM_DOWNLOAD_LOCATION})
 # Add source files
 set(SOURCES
     src/main.cpp
+    src/graphics/Window.cpp
+)
+
+# Add SFML dependency
+CPMAddPackage(
+    NAME SFML
+    GITHUB_REPOSITORY SFML/SFML
+    GIT_TAG 2.6.1
+    OPTIONS
+        "SFML_BUILD_AUDIO TRUE"
+        "SFML_BUILD_NETWORK TRUE"
+        "SFML_BUILD_GRAPHICS TRUE"
+        "SFML_BUILD_WINDOW TRUE"
 )
 
 # Create executable
 add_executable(${PROJECT_NAME} ${SOURCES})
+
+# Link SFML
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    sfml-system
+    sfml-window
+    sfml-graphics
+    sfml-audio
+    sfml-network
+)
 
 # Set output directories
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
+# Copy SFML DLLs for main executable
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:sfml-system>
+        $<TARGET_FILE:sfml-window>
+        $<TARGET_FILE:sfml-graphics>
+        $<TARGET_FILE:sfml-audio>
+        $<TARGET_FILE:sfml-network>
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+)
+
 # Enable testing
 enable_testing()
+
+# Add Google Test
+CPMAddPackage(
+    NAME GoogleTest
+    GITHUB_REPOSITORY google/googletest
+    GIT_TAG v1.14.0
+    VERSION 1.14.0
+    OPTIONS
+        "INSTALL_GTEST OFF"
+        "gtest_force_shared_crt ON"
+)
+
+# Add test executable
+set(TEST_SOURCES
+    tests/graphics/WindowTests.cpp
+)
+
+add_executable(${PROJECT_NAME}_tests ${TEST_SOURCES} src/graphics/Window.cpp)
+target_link_libraries(${PROJECT_NAME}_tests PRIVATE
+    GTest::gtest_main
+    sfml-system
+    sfml-window
+    sfml-graphics
+)
+
+target_include_directories(${PROJECT_NAME}_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+add_test(NAME ${PROJECT_NAME}_tests COMMAND ${PROJECT_NAME}_tests)
+
+# Set test output directory
+set_target_properties(${PROJECT_NAME}_tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+# Copy SFML DLLs for test executable
+add_custom_command(TARGET ${PROJECT_NAME}_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:sfml-system>
+        $<TARGET_FILE:sfml-window>
+        $<TARGET_FILE:sfml-graphics>
+        $<TARGET_FILE:sfml-audio>
+        $<TARGET_FILE:sfml-network>
+        $<TARGET_FILE_DIR:${PROJECT_NAME}_tests>
+)

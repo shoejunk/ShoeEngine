@@ -5,6 +5,25 @@ ShoeEngine is a highly modular, data-driven 2D game engine built in C++. The eng
 
 ## Code Organization
 
+### Namespace Structure
+- All engine code must reside within the `ShoeEngine` namespace
+- Each broad category of functionality must have its own namespace within `ShoeEngine`
+- Category namespaces must correspond directly to their source directory under `src/`
+- Example structure:
+  ```cpp
+  namespace ShoeEngine {      // All engine code
+  namespace Graphics {        // src/graphics/
+      class Window { ... }
+  }
+  namespace Physics {         // src/physics/
+      class RigidBody { ... }
+  }
+  namespace Audio {          // src/audio/
+      class SoundSystem { ... }
+  }
+  }  // namespace ShoeEngine
+  ```
+
 ### File Structure
 - Header (.h) and implementation (.cpp) files are kept together in the same directory
 - Files are organized in logical directories under `src/` based on their functionality
@@ -22,6 +41,7 @@ ShoeEngine is a highly modular, data-driven 2D game engine built in C++. The eng
   ```
 
 ### Naming Conventions
+- Namespaces: PascalCase (e.g., `ShoeEngine`, `Graphics`, `Physics`)
 - Classes: PascalCase (e.g., `DataManager`, `WindowManager`)
 - Functions: PascalCase (e.g., `CreateWindow`, `LoadData`)
 - Variables: camelCase (e.g., `windowConfig`, `spriteData`)

@@ -4,12 +4,11 @@
  */
 
 #include <iostream>
+#include "graphics/Window.h"
 
 /**
  * @brief Main entry point for the ShoeEngine application
  * 
- * @param argc Number of command line arguments
- * @param argv Array of command line arguments
  * @return int Exit code (0 for success, non-zero for failure)
  * 
  * @example
@@ -27,14 +26,22 @@
  *     return 0;
  * }
  */
-int main(int argc, char* argv[]) {
+int main() {
     try {
         std::cout << "ShoeEngine initializing..." << std::endl;
         
-        // TODO: Initialize engine components
-        // TODO: Load configuration
-        // TODO: Start game loop
-        
+        ShoeEngine::Graphics::Window window("ShoeEngine", 800, 600);
+
+        while (window.IsOpen()) {
+            if (!window.ProcessEvents()) {
+                break;
+            }
+
+            window.Clear();
+            // Game rendering will go here
+            window.Display();
+        }
+
         return 0;
     }
     catch (const std::exception& e) {
