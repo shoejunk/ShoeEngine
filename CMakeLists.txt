@@ -23,6 +23,7 @@ include(${CPM_DOWNLOAD_LOCATION})
 set(SOURCES
     src/main.cpp
     src/graphics/Window.cpp
+    src/core/DataManager.cpp
 )
 
 # Add SFML dependency
@@ -37,6 +38,15 @@ CPMAddPackage(
         "SFML_BUILD_WINDOW TRUE"
 )
 
+# Add nlohmann/json dependency
+CPMAddPackage(
+    NAME nlohmann_json
+    VERSION 3.11.3
+    GITHUB_REPOSITORY nlohmann/json
+    OPTIONS
+        "JSON_BuildTests OFF"
+)
+
 # Create executable
 add_executable(${PROJECT_NAME} ${SOURCES})
 
@@ -47,6 +57,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     sfml-graphics
     sfml-audio
     sfml-network
+    nlohmann_json::nlohmann_json
 )
 
 # Set output directories
@@ -63,6 +74,13 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         $<TARGET_FILE:sfml-audio>
         $<TARGET_FILE:sfml-network>
         $<TARGET_FILE_DIR:${PROJECT_NAME}>
+)
+
+# Copy data directory to build output
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/data
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/data
 )
 
 # Enable testing
@@ -82,14 +100,18 @@ CPMAddPackage(
 # Add test executable
 set(TEST_SOURCES
     tests/graphics/WindowTests.cpp
+    tests/core/DataManagerTests.cpp
+    src/graphics/Window.cpp
+    src/core/DataManager.cpp
 )
 
-add_executable(${PROJECT_NAME}_tests ${TEST_SOURCES} src/graphics/Window.cpp)
+add_executable(${PROJECT_NAME}_tests ${TEST_SOURCES})
 target_link_libraries(${PROJECT_NAME}_tests PRIVATE
     GTest::gtest_main
     sfml-system
     sfml-window
     sfml-graphics
+    nlohmann_json::nlohmann_json
 )
 
 target_include_directories(${PROJECT_NAME}_tests PRIVATE

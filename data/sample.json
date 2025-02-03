@@ -1,0 +1,26 @@
+{
+    "sprites": {
+        "player": {
+            "texture": "player.png",
+            "frameWidth": 32,
+            "frameHeight": 32,
+            "animations": {
+                "idle": {
+                    "frames": [0, 1, 2, 3],
+                    "frameTime": 0.1
+                },
+                "walk": {
+                    "frames": [4, 5, 6, 7],
+                    "frameTime": 0.08
+                }
+            }
+        }
+    },
+    "textures": {
+        "player.png": {
+            "path": "textures/player.png",
+            "smooth": true,
+            "repeated": false
+        }
+    }
+}

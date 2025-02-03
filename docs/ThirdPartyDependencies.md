@@ -14,3 +14,15 @@ This document tracks all third-party libraries used in ShoeEngine, their version
   - Permissive free software license
   - Allows free commercial and non-commercial use
   - Source: https://www.sfml-dev.org/license.php
+
+## nlohmann/json
+- **Version**: 3.11.3
+- **Purpose**: A modern C++ JSON library that provides:
+  - Intuitive syntax for JSON handling
+  - Type safety and modern C++ features
+  - Efficient parsing and serialization
+  - Comprehensive error handling
+- **License**: MIT License
+  - Permissive open-source license
+  - Allows commercial use, modification, distribution, and private use
+  - Source: https://github.com/nlohmann/json/blob/develop/LICENSE.MIT
