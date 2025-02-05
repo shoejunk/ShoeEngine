@@ -58,10 +58,23 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     nlohmann_json::nlohmann_json
 )
 
-# Set output directories
+# Set include directories for main executable
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+# Set output directories for all targets
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
+
+# Set Visual Studio debugger working directory
+if(MSVC)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+endif()
 
 # Copy SFML DLLs for main executable
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
@@ -86,33 +99,6 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_SOURCE_DIR}/data/sample.json
         $<TARGET_FILE_DIR:${PROJECT_NAME}>/data/sample.json
-)
-
-# Create test image generator executable
-add_executable(CreateTestImage tests/graphics/CreateTestImage.cpp ${SOURCES})
-target_link_libraries(CreateTestImage PRIVATE
-    sfml-system
-    sfml-window
-    sfml-graphics
-    sfml-audio
-    sfml-network
-    nlohmann_json::nlohmann_json
-)
-
-# Set output directories for CreateTestImage
-set_target_properties(CreateTestImage PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
-
-# Copy SFML DLLs for CreateTestImage
-add_custom_command(TARGET CreateTestImage POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:sfml-system>
-        $<TARGET_FILE:sfml-window>
-        $<TARGET_FILE:sfml-graphics>
-        $<TARGET_FILE:sfml-audio>
-        $<TARGET_FILE:sfml-network>
-        $<TARGET_FILE_DIR:CreateTestImage>
 )
 
 # Enable testing
@@ -141,7 +127,22 @@ list(APPEND TEST_SOURCES ${SOURCES})
 list(FILTER TEST_SOURCES EXCLUDE REGEX ".*main\\.cpp$")
 
 add_executable(${PROJECT_NAME}_tests ${TEST_SOURCES})
+
+# Set include directories for tests
+target_include_directories(${PROJECT_NAME}_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/tests
+)
+
+# Set Visual Studio debugger working directory for tests
+if(MSVC)
+    set_target_properties(${PROJECT_NAME}_tests PROPERTIES
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+endif()
+
 target_link_libraries(${PROJECT_NAME}_tests PRIVATE
+    GTest::gtest
     GTest::gtest_main
     sfml-system
     sfml-window
@@ -149,15 +150,13 @@ target_link_libraries(${PROJECT_NAME}_tests PRIVATE
     nlohmann_json::nlohmann_json
 )
 
-target_include_directories(${PROJECT_NAME}_tests PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
+include(GoogleTest)
+gtest_discover_tests(${PROJECT_NAME}_tests
+    DISCOVERY_TIMEOUT 60
+    PROPERTIES
+        TIMEOUT 60
+        ENVIRONMENT "GTEST_COLOR=1"
 )
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
-)
-
-add_test(NAME ${PROJECT_NAME}_tests COMMAND ${PROJECT_NAME}_tests)
 
 # Set test output directory
 set_target_properties(${PROJECT_NAME}_tests PROPERTIES

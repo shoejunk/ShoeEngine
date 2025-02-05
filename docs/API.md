@@ -222,6 +222,85 @@ Retrieves a sprite by its ID.
 }
 ```
 
+## Input
+
+### Input Class
+`ShoeEngine::Input::Input`
+
+The Input class represents a configurable input binding that can trigger actions based on keyboard or mouse input.
+
+#### Constructor
+```cpp
+Input(const std::string& name, Type type)
+```
+Creates a new input binding with the specified name and type.
+- **Parameters:**
+  - `name`: Unique identifier for this input binding
+  - `type`: Type of input (Keyboard, MouseButton, or MouseAxis)
+
+#### Methods
+
+##### `void SetKey(sf::Keyboard::Key key)`
+Sets the keyboard key for this input binding.
+- **Parameters:**
+  - `key`: SFML keyboard key enumeration value
+
+##### `void SetMouseButton(sf::Mouse::Button button)`
+Sets the mouse button for this input binding.
+- **Parameters:**
+  - `button`: SFML mouse button enumeration value
+
+##### `void SetCallback(std::function<void()> callback)`
+Sets the action callback that will be triggered when the input is activated.
+- **Parameters:**
+  - `callback`: Function to be called when input is triggered
+
+##### `const std::string& GetName() const`
+Gets the name of this input binding.
+- **Returns:** The input binding's name
+
+##### `void SetContext(const std::string& context)`
+Sets the context in which this input is active.
+- **Parameters:**
+  - `context`: Context identifier string
+
+##### `const std::string& GetContext() const`
+Gets the current context of this input.
+- **Returns:** The current context identifier
+
+### InputManager Class
+`ShoeEngine::Input::InputManager`
+
+The InputManager class handles the creation and management of input bindings from JSON configuration data.
+
+#### Constructor
+```cpp
+InputManager()
+```
+Creates a new input manager instance.
+
+#### Methods
+
+##### `bool CreateFromJson(const nlohmann::json& jsonData)`
+Creates input bindings from JSON configuration data.
+- **Parameters:**
+  - `jsonData`: JSON object containing input definitions
+- **Returns:** True if inputs were created successfully
+
+##### `void Update()`
+Updates all active input states and triggers callbacks if necessary.
+
+##### `void SetContext(const std::string& context)`
+Sets the current input context, affecting which input bindings are active.
+- **Parameters:**
+  - `context`: Context identifier string
+
+##### `Input* GetInput(const std::string& name)`
+Retrieves an input binding by name.
+- **Parameters:**
+  - `name`: Name of the input binding to retrieve
+- **Returns:** Pointer to the input binding, or nullptr if not found
+
 ## Core
 
 ### BaseManager Class

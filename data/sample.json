@@ -28,5 +28,31 @@
                 "y": 16
             }
         }
-    }
+    },
+    "inputs": [
+        {
+            "name": "move_left",
+            "type": "keyboard",
+            "key": "left",
+            "context": "gameplay"
+        },
+        {
+            "name": "move_right",
+            "type": "keyboard",
+            "key": "right",
+            "context": "gameplay"
+        },
+        {
+            "name": "move_up",
+            "type": "keyboard",
+            "key": "up",
+            "context": "gameplay"
+        },
+        {
+            "name": "move_down",
+            "type": "keyboard",
+            "key": "down",
+            "context": "gameplay"
+        }
+    ]
 }

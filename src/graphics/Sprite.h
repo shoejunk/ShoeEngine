@@ -49,6 +49,13 @@ public:
     void SetScale(float scaleX, float scaleY);
 
     /**
+     * @brief Moves the sprite by the given offset
+     * @param offsetX Movement along X axis
+     * @param offsetY Movement along Y axis
+     */
+    void Move(float offsetX, float offsetY);
+
+    /**
      * @brief Sets the sprite's origin (rotation/scale center point)
      * @param x X coordinate of the origin
      * @param y Y coordinate of the origin

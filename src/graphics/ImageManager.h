@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/BaseManager.h"
-#include "Image.h"
+#include "Graphics/Image.h"
 #include <unordered_map>
 #include <memory>
 #include <string>

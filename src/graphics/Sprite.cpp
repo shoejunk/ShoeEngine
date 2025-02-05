@@ -31,6 +31,11 @@ void Sprite::SetScale(float scaleX, float scaleY)
     m_sprite->setScale(scaleX, scaleY);
 }
 
+void Sprite::Move(float offsetX, float offsetY)
+{
+    m_sprite->move(offsetX, offsetY);
+}
+
 void Sprite::SetOrigin(float x, float y)
 {
     m_sprite->setOrigin(x, y);

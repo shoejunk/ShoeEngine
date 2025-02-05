@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/BaseManager.h"
-#include "Sprite.h"
-#include "ImageManager.h"
+#include "graphics/Sprite.h"
+#include "graphics/ImageManager.h"
 #include <unordered_map>
 #include <memory>
 #include <string>
@@ -39,11 +39,11 @@ public:
     std::string GetManagedType() const override;
 
     /**
-     * @brief Get a sprite by its ID
-     * @param spriteId The ID of the sprite to retrieve
-     * @return const Sprite* Pointer to the sprite, or nullptr if not found
+     * @brief Gets a sprite by name
+     * @param name The name of the sprite to get
+     * @return Pointer to the sprite, or nullptr if not found
      */
-    const Sprite* GetSprite(const std::string& spriteId) const;
+    Sprite* GetSprite(const std::string& name);
 
     /**
      * @brief Clear all managed sprites

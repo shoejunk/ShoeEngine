@@ -71,9 +71,12 @@ std::string SpriteManager::GetManagedType() const {
     return "sprites";
 }
 
-const Sprite* SpriteManager::GetSprite(const std::string& spriteId) const {
-    auto it = m_sprites.find(spriteId);
-    return it != m_sprites.end() ? it->second.get() : nullptr;
+Sprite* SpriteManager::GetSprite(const std::string& name) {
+    auto it = m_sprites.find(name);
+    if (it != m_sprites.end()) {
+        return it->second.get();
+    }
+    return nullptr;
 }
 
 void SpriteManager::Clear() {
