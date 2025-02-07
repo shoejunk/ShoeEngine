@@ -18,8 +18,11 @@ bool ImageManager::CreateFromJson(const nlohmann::json& jsonData) {
                 throw std::runtime_error("Failed to load image: " + filePath);
             }
             
+            // Create hash from image ID
+            Core::Hash::HashValue hashId(imageId.c_str(), imageId.length());
+            
             // Store the image
-            m_images[imageId] = std::move(image);
+            m_images[hashId] = std::move(image);
         }
         return true;
     }
@@ -29,11 +32,11 @@ bool ImageManager::CreateFromJson(const nlohmann::json& jsonData) {
     }
 }
 
-std::string ImageManager::GetManagedType() const {
-    return "images";
+Core::Hash::HashValue ImageManager::GetManagedType() const {
+    return "images"_h;
 }
 
-const Image* ImageManager::GetImage(const std::string& imageId) const {
+const Image* ImageManager::GetImage(const Core::Hash::HashValue& imageId) const {
     auto it = m_images.find(imageId);
     return it != m_images.end() ? it->second.get() : nullptr;
 }

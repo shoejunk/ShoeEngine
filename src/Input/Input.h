@@ -1,9 +1,9 @@
 #pragma once
 
+#include "core/Hash.h"
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <functional>
-#include <string>
 #include <unordered_map>
 
 namespace ShoeEngine {
@@ -29,10 +29,10 @@ public:
 
     /**
      * @brief Constructor for Input class
-     * @param name The unique identifier for this input binding
+     * @param name The unique hash identifier for this input binding
      * @param type The type of input (keyboard, mouse button, or mouse axis)
      */
-    Input(const std::string& name, Type type);
+    Input(const Core::Hash::HashValue& name, Type type);
 
     /**
      * @brief Set the keyboard key for this input
@@ -54,9 +54,9 @@ public:
 
     /**
      * @brief Get the name of this input binding
-     * @return The input binding's name
+     * @return The input binding's name hash
      */
-    const std::string& GetName() const { return m_name; }
+    const Core::Hash::HashValue& GetName() const { return m_name; }
 
     /**
      * @brief Update the input state and trigger callbacks if necessary
@@ -65,15 +65,15 @@ public:
 
     /**
      * @brief Set the context for this input
-     * @param context The context identifier
+     * @param context The context identifier hash
      */
-    void SetContext(const std::string& context) { m_context = context; }
+    void SetContext(const Core::Hash::HashValue& context) { m_context = context; }
 
     /**
      * @brief Get the current context
-     * @return The current context identifier
+     * @return The current context identifier hash
      */
-    const std::string& GetContext() const { return m_context; }
+    const Core::Hash::HashValue& GetContext() const { return m_context; }
 
     /**
      * @brief Checks if this input is currently active (pressed)
@@ -82,9 +82,9 @@ public:
     bool IsActive() const;
 
 private:
-    std::string m_name;
+    Core::Hash::HashValue m_name;
     Type m_type;
-    std::string m_context;
+    Core::Hash::HashValue m_context;
     std::function<void()> m_callback;
     
     union {

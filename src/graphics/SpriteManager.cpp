@@ -15,8 +15,11 @@ bool SpriteManager::CreateFromJson(const nlohmann::json& jsonData) {
             // Get the image ID for the sprite
             std::string imageId = spriteData.at("image").get<std::string>();
             
+            // Create hash from image ID
+            Core::Hash::HashValue imageHash(imageId.c_str(), imageId.length());
+            
             // Get the image from the ImageManager
-            const Image* image = m_imageManager.GetImage(imageId);
+            const Image* image = m_imageManager.GetImage(imageHash);
             if (!image) {
                 throw std::runtime_error("Image not found: " + imageId);
             }
@@ -56,8 +59,9 @@ bool SpriteManager::CreateFromJson(const nlohmann::json& jsonData) {
                 );
             }
             
-            // Store the sprite
-            m_sprites[spriteId] = std::move(sprite);
+            // Create hash from sprite ID and store the sprite
+            Core::Hash::HashValue spriteHash(spriteId.c_str(), spriteId.length());
+            m_sprites[spriteHash] = std::move(sprite);
         }
         return true;
     }
@@ -67,11 +71,11 @@ bool SpriteManager::CreateFromJson(const nlohmann::json& jsonData) {
     }
 }
 
-std::string SpriteManager::GetManagedType() const {
-    return "sprites";
+Core::Hash::HashValue SpriteManager::GetManagedType() const {
+    return "sprites"_h;
 }
 
-Sprite* SpriteManager::GetSprite(const std::string& name) {
+Sprite* SpriteManager::GetSprite(const Core::Hash::HashValue& name) {
     auto it = m_sprites.find(name);
     if (it != m_sprites.end()) {
         return it->second.get();

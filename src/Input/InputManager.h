@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/BaseManager.h"
+#include "core/Hash.h"
 #include "Input.h"
 #include <memory>
 #include <unordered_map>
@@ -32,9 +33,9 @@ public:
 
     /**
      * @brief Get the type of objects this manager handles
-     * @return std::string Returns "inputs" as the managed type
+     * @return Core::Hash::HashValue Returns hash of "inputs" as the managed type
      */
-    std::string GetManagedType() const override { return "inputs"; }
+    Core::Hash::HashValue GetManagedType() const override { return "inputs"_h; }
 
     /**
      * @brief Update all input states
@@ -43,20 +44,20 @@ public:
 
     /**
      * @brief Set the current input context
-     * @param context The context identifier
+     * @param context The context identifier hash
      */
-    void SetContext(const std::string& context);
+    void SetContext(const Core::Hash::HashValue& context);
 
     /**
      * @brief Get an input binding by name
-     * @param name The name of the input binding
+     * @param name The hash of the input binding name
      * @return Input* Pointer to the input binding, nullptr if not found
      */
-    Input* GetInput(const std::string& name);
+    Input* GetInput(const Core::Hash::HashValue& name);
 
 private:
-    std::unordered_map<std::string, std::unique_ptr<Input>> m_inputs;
-    std::string m_currentContext;
+    std::unordered_map<Core::Hash::HashValue, std::unique_ptr<Input>, Core::Hash::Hasher> m_inputs;
+    Core::Hash::HashValue m_currentContext;
 
     /**
      * @brief Create an input binding from JSON data

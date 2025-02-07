@@ -32,16 +32,16 @@ public:
 
     /**
      * @brief Get the type of objects this manager handles
-     * @return std::string "images" as the managed type
+     * @return Core::Hash::HashValue Hash of "images" as the managed type
      */
-    std::string GetManagedType() const override;
+    Core::Hash::HashValue GetManagedType() const override;
 
     /**
      * @brief Get an image by its ID
      * @param imageId The ID of the image to retrieve
      * @return const Image* Pointer to the image, or nullptr if not found
      */
-    const Image* GetImage(const std::string& imageId) const;
+    const Image* GetImage(const Core::Hash::HashValue& imageId) const;
 
     /**
      * @brief Clear all managed images
@@ -49,7 +49,7 @@ public:
     void Clear();
 
 private:
-    std::unordered_map<std::string, std::unique_ptr<Image>> m_images;
+    std::unordered_map<Core::Hash::HashValue, std::unique_ptr<Image>, Core::Hash::Hasher> m_images;
 };
 
 } // namespace Graphics

@@ -2,6 +2,7 @@
 
 #include "Window.h"
 #include "../core/BaseManager.h"
+#include "../core/Hash.h"
 #include <nlohmann/json.hpp>
 #include <memory>
 #include <vector>
@@ -39,9 +40,9 @@ public:
 
     /**
      * @brief Returns the type of objects this manager handles
-     * @return std::string "windows"
+     * @return Core::Hash::HashValue Hash of "windows"
      */
-    std::string GetManagedType() const override;
+    Core::Hash::HashValue GetManagedType() const override;
 
     /**
      * @brief Process events for all managed windows

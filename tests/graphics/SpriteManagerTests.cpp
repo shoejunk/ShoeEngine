@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 #include "graphics/SpriteManager.h"
+#include "core/Hash.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 
 using namespace ShoeEngine::Graphics;
+using namespace ShoeEngine::Core;
 using json = nlohmann::json;
 
 class SpriteManagerTests : public ::testing::Test {
@@ -57,13 +59,13 @@ protected:
 };
 
 TEST_F(SpriteManagerTests, GetManagedType) {
-    EXPECT_EQ(spriteManager.GetManagedType(), "sprites");
+    EXPECT_EQ(spriteManager.GetManagedType(), "sprites"_h);
 }
 
 TEST_F(SpriteManagerTests, CreateFromJson) {
     EXPECT_TRUE(spriteManager.CreateFromJson(testJson));
     
-    const Sprite* sprite = spriteManager.GetSprite("test_sprite");
+    const Sprite* sprite = spriteManager.GetSprite("test_sprite"_h);
     ASSERT_NE(sprite, nullptr);
     
     auto [x, y] = sprite->GetPosition();
@@ -92,13 +94,13 @@ TEST_F(SpriteManagerTests, CreateWithInvalidImage) {
 }
 
 TEST_F(SpriteManagerTests, GetNonexistentSprite) {
-    EXPECT_EQ(spriteManager.GetSprite("nonexistent"), nullptr);
+    EXPECT_EQ(spriteManager.GetSprite("nonexistent"_h), nullptr);
 }
 
 TEST_F(SpriteManagerTests, Clear) {
     EXPECT_TRUE(spriteManager.CreateFromJson(testJson));
-    EXPECT_NE(spriteManager.GetSprite("test_sprite"), nullptr);
+    EXPECT_NE(spriteManager.GetSprite("test_sprite"_h), nullptr);
     
     spriteManager.Clear();
-    EXPECT_EQ(spriteManager.GetSprite("test_sprite"), nullptr);
+    EXPECT_EQ(spriteManager.GetSprite("test_sprite"_h), nullptr);
 }

@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
 #include "graphics/WindowManager.h"
+#include "core/Hash.h"
 #include <nlohmann/json.hpp>
 
 using namespace ShoeEngine::Graphics;
+using namespace ShoeEngine::Core;
 using json = nlohmann::json;
 
 class WindowManagerTests : public ::testing::Test {
@@ -11,7 +13,7 @@ protected:
 };
 
 TEST_F(WindowManagerTests, GetManagedTypeReturnsWindows) {
-    EXPECT_EQ(manager.GetManagedType(), "windows");
+    EXPECT_EQ(manager.GetManagedType(), "windows"_h);
 }
 
 TEST_F(WindowManagerTests, CreateFromJsonWithValidData) {

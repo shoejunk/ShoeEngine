@@ -5,7 +5,6 @@
 #include "graphics/ImageManager.h"
 #include <unordered_map>
 #include <memory>
-#include <string>
 
 namespace ShoeEngine {
 namespace Graphics {
@@ -34,16 +33,16 @@ public:
 
     /**
      * @brief Get the type of objects this manager handles
-     * @return std::string "sprites" as the managed type
+     * @return Core::Hash::HashValue Hash of "sprites" as the managed type
      */
-    std::string GetManagedType() const override;
+    Core::Hash::HashValue GetManagedType() const override;
 
     /**
      * @brief Gets a sprite by name
      * @param name The name of the sprite to get
      * @return Pointer to the sprite, or nullptr if not found
      */
-    Sprite* GetSprite(const std::string& name);
+    Sprite* GetSprite(const Core::Hash::HashValue& name);
 
     /**
      * @brief Clear all managed sprites
@@ -52,7 +51,7 @@ public:
 
 private:
     ImageManager& m_imageManager;
-    std::unordered_map<std::string, std::unique_ptr<Sprite>> m_sprites;
+    std::unordered_map<Core::Hash::HashValue, std::unique_ptr<Sprite>, Core::Hash::Hasher> m_sprites;
 };
 
 } // namespace Graphics

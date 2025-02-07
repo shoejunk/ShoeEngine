@@ -78,11 +78,11 @@ int main() {
         }
 
         // Set initial context for input
-        inpManager->SetContext("gameplay");
+        inpManager->SetContext("gameplay"_h);
 
         // Debug: Print loaded inputs
         std::cout << "Loaded inputs:\n";
-        for (const auto& name : {"move_left", "move_right", "move_up", "move_down"}) {
+        for (const auto& name : {"move_left"_h, "move_right"_h, "move_up"_h, "move_down"_h}) {
             if (auto* input = inpManager->GetInput(name)) {
                 std::cout << "  " << name << " loaded successfully\n";
             } else {
@@ -96,24 +96,24 @@ int main() {
         // Main game loop
         while (winManager->ProcessEvents()) {
             // Handle input and move sprite
-            if (auto* sprite = sprManager->GetSprite("player_sprite")) {
+            if (auto* sprite = sprManager->GetSprite("player_sprite"_h)) {
                 // Check each input and apply movement if active
-                if (auto* input = inpManager->GetInput("move_left")) {
+                if (auto* input = inpManager->GetInput("move_left"_h)) {
                     if (input->IsActive()) {
                         sprite->Move(-MOVEMENT_SPEED, 0);
                     }
                 }
-                if (auto* input = inpManager->GetInput("move_right")) {
+                if (auto* input = inpManager->GetInput("move_right"_h)) {
                     if (input->IsActive()) {
                         sprite->Move(MOVEMENT_SPEED, 0);
                     }
                 }
-                if (auto* input = inpManager->GetInput("move_up")) {
+                if (auto* input = inpManager->GetInput("move_up"_h)) {
                     if (input->IsActive()) {
                         sprite->Move(0, -MOVEMENT_SPEED);
                     }
                 }
-                if (auto* input = inpManager->GetInput("move_down")) {
+                if (auto* input = inpManager->GetInput("move_down"_h)) {
                     if (input->IsActive()) {
                         sprite->Move(0, MOVEMENT_SPEED);
                     }
@@ -126,7 +126,7 @@ int main() {
             auto& window = winManager->GetWindows()[0]->GetRenderWindow();
 
             // Draw all sprites
-            if (auto* sprite = sprManager->GetSprite("player_sprite")) {
+            if (auto* sprite = sprManager->GetSprite("player_sprite"_h)) {
                 window.draw(sprite->GetSFMLSprite());
             }
 

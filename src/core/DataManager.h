@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BaseManager.h"
+#include "Hash.h"
 #include <nlohmann/json.hpp>
 #include <memory>
 #include <vector>
@@ -55,10 +56,10 @@ public:
      * @param type The type of manager to retrieve
      * @return BaseManager* Pointer to the manager, or nullptr if not found
      */
-    BaseManager* GetManager(const std::string& type);
+    BaseManager* GetManager(const Core::Hash::HashValue& type);
 
 private:
-    std::unordered_map<std::string, std::unique_ptr<BaseManager>> m_managers;
+    std::unordered_map<Core::Hash::HashValue, std::unique_ptr<BaseManager>, Core::Hash::Hasher> m_managers;
 };
 
 } // namespace Core

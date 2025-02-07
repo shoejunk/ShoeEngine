@@ -52,10 +52,14 @@ bool InputManager::CreateInput(const nlohmann::json& inputData) {
             return false;
         }
 
-        auto input = std::make_unique<Input>(name, type);
+        // Create hash from input name
+        Core::Hash::HashValue nameHash(name.c_str(), name.length());
+        auto input = std::make_unique<Input>(nameHash, type);
 
         if (inputData.contains("context")) {
-            input->SetContext(inputData["context"]);
+            std::string context = inputData["context"];
+            Core::Hash::HashValue contextHash(context.c_str(), context.length());
+            input->SetContext(contextHash);
         }
 
         // Configure the input based on its type
@@ -93,7 +97,7 @@ bool InputManager::CreateInput(const nlohmann::json& inputData) {
             input->SetMouseButton(button);
         }
 
-        m_inputs[name] = std::move(input);
+        m_inputs[nameHash] = std::move(input);
         return true;
     }
     catch (const std::exception& e) {
@@ -103,18 +107,18 @@ bool InputManager::CreateInput(const nlohmann::json& inputData) {
 }
 
 void InputManager::Update() {
-    for (auto& [name, input] : m_inputs) {
-        if (input->GetContext().empty() || input->GetContext() == m_currentContext) {
+    for (const auto& [name, input] : m_inputs) {
+        if (input->GetContext() == m_currentContext) {
             input->Update();
         }
     }
 }
 
-void InputManager::SetContext(const std::string& context) {
+void InputManager::SetContext(const Core::Hash::HashValue& context) {
     m_currentContext = context;
 }
 
-Input* InputManager::GetInput(const std::string& name) {
+Input* InputManager::GetInput(const Core::Hash::HashValue& name) {
     auto it = m_inputs.find(name);
     return it != m_inputs.end() ? it->second.get() : nullptr;
 }

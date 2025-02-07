@@ -13,7 +13,7 @@ bool DataManager::RegisterManager(std::unique_ptr<BaseManager> manager) {
         return false;
     }
 
-    std::string type = manager->GetManagedType();
+    Core::Hash::HashValue type = manager->GetManagedType();
     if (m_managers.find(type) != m_managers.end()) {
         return false;
     }
@@ -45,7 +45,8 @@ bool DataManager::ProcessData(const nlohmann::json& jsonData) {
     bool allProcessedSuccessfully = true;
 
     for (const auto& [type, data] : jsonData.items()) {
-        auto managerIt = m_managers.find(type);
+        Core::Hash::HashValue typeHash(type.c_str(), type.length());
+        auto managerIt = m_managers.find(typeHash);
         if (managerIt != m_managers.end()) {
             if (!managerIt->second->CreateFromJson(data)) {
                 std::cerr << "Failed to process data for type: " << type << std::endl;
@@ -63,7 +64,7 @@ bool DataManager::ProcessData(const nlohmann::json& jsonData) {
     return anyManagerProcessed && allProcessedSuccessfully;
 }
 
-BaseManager* DataManager::GetManager(const std::string& type) {
+BaseManager* DataManager::GetManager(const Core::Hash::HashValue& type) {
     auto it = m_managers.find(type);
     if (it != m_managers.end()) {
         return it->second.get();

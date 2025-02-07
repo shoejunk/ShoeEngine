@@ -1,4 +1,7 @@
 #include "WindowManager.h"
+#include "../core/Hash.h"
+
+using namespace ShoeEngine::Core;
 
 namespace ShoeEngine {
 namespace Graphics {
@@ -24,8 +27,8 @@ bool WindowManager::CreateFromJson(const nlohmann::json& jsonData) {
     }
 }
 
-std::string WindowManager::GetManagedType() const {
-    return "windows";
+Hash::HashValue WindowManager::GetManagedType() const {
+    return "windows"_h;
 }
 
 bool WindowManager::ProcessEvents() {

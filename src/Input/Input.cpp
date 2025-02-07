@@ -3,7 +3,7 @@
 namespace ShoeEngine {
 namespace Input {
 
-Input::Input(const std::string& name, Type type)
+Input::Input(const Core::Hash::HashValue& name, Type type)
     : m_name(name)
     , m_type(type)
     , m_wasPressed(false) {

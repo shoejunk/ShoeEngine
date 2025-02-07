@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Hash.h"
 #include <nlohmann/json.hpp>
-#include <string>
 
 namespace ShoeEngine {
 namespace Core {
@@ -29,9 +29,9 @@ public:
 
     /**
      * @brief Get the type of objects this manager handles
-     * @return std::string The type identifier for this manager
+     * @return Hash::HashValue The type identifier for this manager
      */
-    virtual std::string GetManagedType() const = 0;
+    virtual Hash::HashValue GetManagedType() const = 0;
 };
 
 } // namespace Core

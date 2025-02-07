@@ -12,21 +12,21 @@ protected:
 };
 
 TEST_F(InputTest, CreateKeyboardInput) {
-    Input input("jump", Input::Type::Keyboard);
+    Input input("jump"_h, Input::Type::Keyboard);
     input.SetKey(sf::Keyboard::Space);
-    EXPECT_EQ(input.GetName(), "jump");
+    EXPECT_EQ(input.GetName(), "jump"_h);
 }
 
 TEST_F(InputTest, CreateMouseInput) {
-    Input input("shoot", Input::Type::MouseButton);
+    Input input("shoot"_h, Input::Type::MouseButton);
     input.SetMouseButton(sf::Mouse::Left);
-    EXPECT_EQ(input.GetName(), "shoot");
+    EXPECT_EQ(input.GetName(), "shoot"_h);
 }
 
 TEST_F(InputTest, InputContext) {
-    Input input("menu", Input::Type::Keyboard);
-    input.SetContext("MainMenu");
-    EXPECT_EQ(input.GetContext(), "MainMenu");
+    Input input("menu"_h, Input::Type::Keyboard);
+    input.SetContext("MainMenu"_h);
+    EXPECT_EQ(input.GetContext(), "MainMenu"_h);
 }
 
 class InputManagerTest : public ::testing::Test {
@@ -46,7 +46,7 @@ TEST_F(InputManagerTest, CreateFromValidJson) {
     }};
     
     EXPECT_TRUE(manager.CreateFromJson(jsonData));
-    EXPECT_NE(manager.GetInput("jump"), nullptr);
+    EXPECT_NE(manager.GetInput("jump"_h), nullptr);
 }
 
 TEST_F(InputManagerTest, CreateFromInvalidJson) {
@@ -66,8 +66,8 @@ TEST_F(InputManagerTest, ContextHandling) {
     }};
     
     EXPECT_TRUE(manager.CreateFromJson(jsonData));
-    manager.SetContext("gameplay");
-    auto input = manager.GetInput("menu");
+    manager.SetContext("gameplay"_h);
+    auto input = manager.GetInput("menu"_h);
     EXPECT_NE(input, nullptr);
-    EXPECT_EQ(input->GetContext(), "gameplay");
+    EXPECT_EQ(input->GetContext(), "gameplay"_h);
 }
