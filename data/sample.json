@@ -29,30 +29,40 @@
             }
         }
     },
-    "inputs": [
-        {
-            "name": "move_left",
-            "type": "keyboard",
-            "key": "left",
-            "context": "gameplay"
-        },
-        {
-            "name": "move_right",
-            "type": "keyboard",
-            "key": "right",
-            "context": "gameplay"
-        },
-        {
-            "name": "move_up",
-            "type": "keyboard",
-            "key": "up",
-            "context": "gameplay"
-        },
-        {
-            "name": "move_down",
-            "type": "keyboard",
-            "key": "down",
-            "context": "gameplay"
-        }
-    ]
+    "inputs": {
+        "gameplay": [
+            {
+                "name": "move_left",
+                "type": "keyboard",
+                "key": "A"
+            },
+            {
+                "name": "move_right",
+                "type": "keyboard",
+                "key": "D"
+            },
+            {
+                "name": "move_up",
+                "type": "keyboard",
+                "key": "W"
+            },
+            {
+                "name": "move_down",
+                "type": "keyboard",
+                "key": "S"
+            }
+        ],
+        "menu": [
+            {
+                "name": "navigate_left",
+                "type": "keyboard",
+                "key": "Left"
+            },
+            {
+                "name": "navigate_right",
+                "type": "keyboard",
+                "key": "Right"
+            }
+        ]
+    }
 }

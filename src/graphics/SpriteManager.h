@@ -3,6 +3,7 @@
 #include "core/BaseManager.h"
 #include "graphics/Sprite.h"
 #include "graphics/ImageManager.h"
+#include "core/DataManager.h"
 #include <unordered_map>
 #include <memory>
 
@@ -19,10 +20,11 @@ namespace Graphics {
 class SpriteManager : public Core::BaseManager {
 public:
     /**
-     * @brief Constructor taking a reference to the ImageManager
+     * @brief Constructor taking references to required managers
+     * @param dataManager Reference to the DataManager for string registration
      * @param imageManager Reference to the ImageManager for sprite creation
      */
-    explicit SpriteManager(ImageManager& imageManager);
+    SpriteManager(Core::DataManager& dataManager, ImageManager& imageManager);
 
     /**
      * @brief Creates Sprite objects from JSON data
@@ -48,6 +50,12 @@ public:
      * @brief Clear all managed sprites
      */
     void Clear();
+
+    /**
+     * @brief Serialize all managed sprites to JSON
+     * @return nlohmann::json JSON array containing serialized data of all sprites
+     */
+    nlohmann::json SerializeToJson() override;
 
 private:
     ImageManager& m_imageManager;

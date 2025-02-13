@@ -1,32 +1,38 @@
 #include "DataManager.h"
 #include <fstream>
-#include <iostream>
+#include <stdexcept>
 
 namespace ShoeEngine {
 namespace Core {
 
-DataManager::DataManager() {}
-DataManager::~DataManager() {}
+DataManager::DataManager() = default;
+DataManager::~DataManager() = default;
 
 bool DataManager::RegisterManager(std::unique_ptr<BaseManager> manager) {
-    if (!manager) {
-        return false;
-    }
-
-    Core::Hash::HashValue type = manager->GetManagedType();
+    auto type = manager->GetManagedType();
     if (m_managers.find(type) != m_managers.end()) {
         return false;
     }
-
     m_managers[type] = std::move(manager);
     return true;
+}
+
+Hash::HashValue DataManager::RegisterString(const std::string& str) {
+    Hash::HashValue hash(str.c_str(), static_cast<uint32_t>(str.length()));
+    m_stringRegistry[hash] = str;
+    return hash;
+}
+
+const std::string& DataManager::GetString(const Hash::HashValue& hash) const {
+    static const std::string empty;
+    auto it = m_stringRegistry.find(hash);
+    return it != m_stringRegistry.end() ? it->second : empty;
 }
 
 bool DataManager::LoadFromFile(const std::string& filePath) {
     try {
         std::ifstream file(filePath);
         if (!file.is_open()) {
-            std::cerr << "Failed to open file: " << filePath << std::endl;
             return false;
         }
 
@@ -34,8 +40,7 @@ bool DataManager::LoadFromFile(const std::string& filePath) {
         file >> jsonData;
         return ProcessData(jsonData);
     }
-    catch (const std::exception& e) {
-        std::cerr << "Error loading JSON file: " << e.what() << std::endl;
+    catch (const std::exception&) {
         return false;
     }
 }
@@ -44,24 +49,57 @@ bool DataManager::ProcessData(const nlohmann::json& jsonData) {
     bool anyManagerProcessed = false;
     bool allProcessedSuccessfully = true;
 
-    for (const auto& [type, data] : jsonData.items()) {
-        Core::Hash::HashValue typeHash(type.c_str(), type.length());
-        auto managerIt = m_managers.find(typeHash);
-        if (managerIt != m_managers.end()) {
-            if (!managerIt->second->CreateFromJson(data)) {
-                std::cerr << "Failed to process data for type: " << type << std::endl;
+	if (!jsonData.is_object()) {
+		return false;
+	}
+
+	for (auto jit = jsonData.begin(); jit != jsonData.end(); ++jit) {
+        Hash::HashValue typeHash(jit.key().c_str(), static_cast<uint32_t>(jit.key().length()));
+            
+        auto it = m_managers.find(typeHash);
+        if (it != m_managers.end()) {
+            anyManagerProcessed = true;
+            if (!it->second->CreateFromJson(jit.value())) {
                 allProcessedSuccessfully = false;
             }
-            anyManagerProcessed = true;
-        }
-        else {
-            // Just log that no manager is registered for this type
-            std::cout << "No manager registered for type: " << type << std::endl;
         }
     }
 
-    // Return true if at least one manager processed its data successfully
     return anyManagerProcessed && allProcessedSuccessfully;
+}
+
+bool DataManager::SaveToFile(const std::string& filePath)
+{
+	try {
+		// Create a top-level JSON object
+		nlohmann::json rootJson = nlohmann::json::object();
+
+		// Iterate through all managers
+		for (const auto& [type, manager] : m_managers)
+		{
+			// Serialize the manager to JSON
+			nlohmann::json managerData = manager->SerializeToJson();
+			if (!managerData.empty())
+			{
+				// Use the type name (e.g. "sprites", "images") as a key in the root object
+				const std::string typeName = GetString(type);
+				rootJson[typeName] = managerData;
+			}
+		}
+
+		// Write the completed JSON to file
+		std::ofstream file(filePath);
+		if (!file.is_open()) {
+			return false;
+		}
+		file << rootJson.dump(4); // Pretty-print with 4 spaces
+		file.close();
+
+		return true;
+	}
+	catch (const std::exception&) {
+		return false;
+	}
 }
 
 BaseManager* DataManager::GetManager(const Core::Hash::HashValue& type) {

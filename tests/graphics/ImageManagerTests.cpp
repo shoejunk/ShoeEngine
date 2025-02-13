@@ -3,6 +3,7 @@
 #include "core/Hash.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
+#include "core/DataManager.h"
 
 using namespace ShoeEngine::Graphics;
 using namespace ShoeEngine::Core;
@@ -10,6 +11,8 @@ using json = nlohmann::json;
 
 class ImageManagerTests : public ::testing::Test {
 protected:
+    ImageManagerTests() : manager(dataManager) {}
+
     void SetUp() override {
         // Create a test image file
         std::vector<uint8_t> pixels(4 * 4 * 4, 255); // 4x4 white image
@@ -29,6 +32,7 @@ protected:
         std::remove("test_image.png");
     }
 
+    DataManager dataManager;
     std::unique_ptr<Image> testImage;
     json testJson;
     ImageManager manager;

@@ -1,5 +1,6 @@
 #include "ImageManager.h"
 #include <stdexcept>
+#include <iostream>
 
 namespace ShoeEngine {
 namespace Graphics {
@@ -19,7 +20,7 @@ bool ImageManager::CreateFromJson(const nlohmann::json& jsonData) {
             }
             
             // Create hash from image ID
-            Core::Hash::HashValue hashId(imageId.c_str(), imageId.length());
+            Core::Hash::HashValue hashId(imageId.c_str(), static_cast<uint32_t>(imageId.length()));
             
             // Store the image
             m_images[hashId] = std::move(image);
@@ -27,7 +28,7 @@ bool ImageManager::CreateFromJson(const nlohmann::json& jsonData) {
         return true;
     }
     catch (const std::exception& e) {
-        // Log error and return false
+		std::cerr << "Error loading images: " << e.what() << "\n";
         return false;
     }
 }

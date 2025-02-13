@@ -1,0 +1,3963 @@
+
+=== FILE: .\build.bat ===
+@echo off
+echo Building Release configuration...
+cmake --build build --config Release
+echo Done!
+
+
+=== FILE: .\CMakeLists.txt ===
+cmake_minimum_required(VERSION 3.14)
+
+# Project declaration
+project(ShoeEngine VERSION 0.1.0)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# --- Download CPM.cmake ---
+set(CPM_DOWNLOAD_VERSION 0.38.6)
+set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+if(NOT EXISTS ${CPM_DOWNLOAD_LOCATION})
+    message(STATUS "Downloading CPM.cmake...")
+    file(DOWNLOAD
+        https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+        ${CPM_DOWNLOAD_LOCATION}
+    )
+endif()
+include(${CPM_DOWNLOAD_LOCATION})
+
+# --- Dependencies ---
+
+# Add SFML dependency
+CPMAddPackage(
+    NAME SFML
+    GITHUB_REPOSITORY SFML/SFML
+    GIT_TAG 2.6.1
+    OPTIONS
+        "SFML_BUILD_AUDIO TRUE"
+        "SFML_BUILD_NETWORK TRUE"
+        "SFML_BUILD_GRAPHICS TRUE"
+        "SFML_BUILD_WINDOW TRUE"
+)
+
+# Add nlohmann/json dependency
+CPMAddPackage(
+    NAME nlohmann_json
+    VERSION 3.11.3
+    GITHUB_REPOSITORY nlohmann/json
+    OPTIONS
+        "JSON_BuildTests OFF"
+)
+
+# Add GoogleTest dependency (for tests)
+CPMAddPackage(
+    NAME GoogleTest
+    GITHUB_REPOSITORY google/googletest
+    GIT_TAG v1.14.0
+    VERSION 1.14.0
+    OPTIONS
+        "INSTALL_GTEST OFF"
+        "gtest_force_shared_crt ON"
+)
+
+# --- Core Engine Library Setup ---
+
+# Collect all source and header files from src/
+file(GLOB_RECURSE ALL_SRC "src/*.cpp")
+file(GLOB_RECURSE ALL_HEADERS "src/*.h")
+
+# Exclude main.cpp (which contains the main() function) from the library build.
+list(FILTER ALL_SRC EXCLUDE REGEX ".*main\\.cpp$")
+
+set(LIB_SOURCES ${ALL_SRC})
+set(LIB_HEADERS ${ALL_HEADERS})
+
+# Create the engine library (core code) as a static library
+add_library(${PROJECT_NAME}_lib STATIC ${LIB_SOURCES} ${LIB_HEADERS})
+
+# Include our own headers (from src/)
+target_include_directories(${PROJECT_NAME}_lib PUBLIC ${CMAKE_SOURCE_DIR}/src)
+
+# Link third-party dependencies so that their include directories are available.
+# Using PUBLIC ensures that any target linking ${PROJECT_NAME}_lib will also see these include paths.
+target_link_libraries(${PROJECT_NAME}_lib PUBLIC
+    sfml-system
+    sfml-window
+    sfml-graphics
+    sfml-audio
+    sfml-network
+    nlohmann_json::nlohmann_json
+)
+
+# Visual Studio: group files in their native directory structure (headers and cpp files together)
+if(MSVC)
+    source_group(TREE ${CMAKE_SOURCE_DIR}/src FILES ${LIB_SOURCES} ${LIB_HEADERS})
+endif()
+
+# --- Main Executable Setup ---
+
+# Define the main file separately (assumed to be src/main.cpp)
+set(MAIN_FILE "${CMAKE_SOURCE_DIR}/src/main.cpp")
+
+add_executable(${PROJECT_NAME} ${MAIN_FILE})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+# Link the core library (which propagates SFML and nlohmann/json include paths) to the executable.
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_lib)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+if(MSVC)
+    source_group(TREE ${CMAKE_SOURCE_DIR}/src FILES ${MAIN_FILE})
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+endif()
+
+# Copy SFML DLLs for the main executable
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:sfml-system>
+        $<TARGET_FILE:sfml-window>
+        $<TARGET_FILE:sfml-graphics>
+        $<TARGET_FILE:sfml-audio>
+        $<TARGET_FILE:sfml-network>
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+)
+
+# Copy the data directory and sample.json to the main executable output
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/data
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/data
+)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/data/sample.json
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/data/sample.json
+)
+
+# --- Test Executable Setup ---
+
+enable_testing()
+
+# Collect test source and header files from tests/
+file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
+file(GLOB_RECURSE TEST_HEADERS "tests/*.h")
+
+if(MSVC)
+    source_group(TREE ${CMAKE_SOURCE_DIR}/tests FILES ${TEST_SOURCES} ${TEST_HEADERS})
+endif()
+
+# Create the test executable; tests are built only from the tests/ folder.
+add_executable(${PROJECT_NAME}_tests ${TEST_SOURCES} ${TEST_HEADERS})
+target_include_directories(${PROJECT_NAME}_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src  # Allow tests to include core engine headers.
+)
+target_link_libraries(${PROJECT_NAME}_tests PRIVATE
+    ${PROJECT_NAME}_lib
+    GTest::gtest
+    GTest::gtest_main
+)
+
+if(MSVC)
+    set_target_properties(${PROJECT_NAME}_tests PROPERTIES
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+endif()
+
+include(GoogleTest)
+gtest_discover_tests(${PROJECT_NAME}_tests
+    DISCOVERY_TIMEOUT 60
+    PROPERTIES
+        TIMEOUT 60
+        ENVIRONMENT "GTEST_COLOR=1"
+)
+
+set_target_properties(${PROJECT_NAME}_tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+# Copy SFML DLLs for the test executable
+add_custom_command(TARGET ${PROJECT_NAME}_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:sfml-system>
+        $<TARGET_FILE:sfml-window>
+        $<TARGET_FILE:sfml-graphics>
+        $<TARGET_FILE:sfml-audio>
+        $<TARGET_FILE:sfml-network>
+        $<TARGET_FILE_DIR:${PROJECT_NAME}_tests>
+)
+
+
+=== FILE: .\dump.bat ===
+python dump.py
+
+=== FILE: .\generate.bat ===
+@echo off
+echo Generating project files...
+cmake -B build -S .
+echo Done!
+
+
+=== FILE: .\README.md ===
+# ShoeEngine
+
+A highly modular, data-driven 2D game engine built in C++. The engine's core philosophy is based on JSON-driven architecture, where game objects and their configurations are defined in JSON data files and instantiated through a managed factory system.
+
+## Features
+
+- Data-driven architecture using JSON configuration
+- Modular design with clear separation of concerns
+- Comprehensive unit testing for all components
+- Modern C++17 implementation
+- Dependency management via CPM.cmake
+
+## Building
+
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build . --config Debug
+```
+
+## Documentation
+
+For detailed information about coding standards, architecture, and contribution guidelines, see [Developer Guidelines](docs/DeveloperGuidelines.md).
+
+## License
+
+[MIT License](LICENSE)
+
+
+=== FILE: .\release.bat ===
+@echo off
+echo Running Release configuration...
+.\build\bin\Release\ShoeEngine.exe
+echo Done!
+
+
+=== FILE: .\test.bat ===
+@echo off
+echo Running unit tests...
+cd build
+ctest -C Release --output-on-failure
+cd ..
+echo Done!
+
+
+=== FILE: .\docs\AIContributorGuide.md ===
+# AI Agent Prompt for ShoeEngine
+
+You are a skilled C++ software engineer working on ShoeEngine, a modern 2D game engine. Your role is to develop and maintain individual components of the engine, ensuring they integrate seamlessly with the existing architecture.
+
+## Your Role and Responsibilities
+
+You will be assigned specific classes to implement within the engine. Each class you create must:
+1. Follow the established architectural patterns
+2. Include comprehensive unit tests
+3. Be fully documented
+4. Integrate with the existing codebase
+
+## Project Context
+
+ShoeEngine is a modular, data-driven 2D game engine built in C++17, using SFML 2.6.1 for multimedia capabilities. The engine emphasizes:
+- Clean, maintainable code
+- Comprehensive testing
+- Clear documentation
+- Modular design
+
+## Critical Guidelines You Must Follow
+
+### 1. Code Organization
+- ALWAYS place your code within the `ShoeEngine` namespace
+- ALWAYS create a category namespace within `ShoeEngine` (e.g., `Graphics`, `Physics`)
+- ALWAYS place files in the corresponding `src/<category>/` directory
+- NEVER deviate from the established namespace hierarchy
+
+### 2. Naming Conventions
+You MUST use these naming conventions:
+- Namespaces: PascalCase (`ShoeEngine`, `Graphics`)
+- Classes: PascalCase (`Window`, `SpriteManager`)
+- Functions: PascalCase (`CreateSprite`, `LoadTexture`)
+- Variables: camelCase (`textureId`, `spriteCount`)
+- Private Members: m_camelCase (`m_window`, `m_isActive`)
+
+### 3. Documentation Requirements
+You MUST document all code using this format:
+
+For classes:
+```cpp
+/**
+ * @class ClassName
+ * @brief Brief description
+ *
+ * Detailed description
+ *
+ * @note Any important notes
+ */
+```
+
+For methods:
+```cpp
+/**
+ * @brief Description of what the function does
+ * @param paramName Description of parameter
+ * @return Description of return value
+ */
+```
+
+### 4. File Structure
+For each class you create, you MUST provide:
+1. Header file: `src/<category>/<ClassName>.h`
+2. Implementation: `src/<category>/<ClassName>.cpp`
+3. Unit tests: `tests/<category>/<ClassName>Tests.cpp`
+
+### 5. Testing Requirements
+You MUST:
+- Write comprehensive unit tests using Google Test
+- Test all public methods
+- Include edge cases and error conditions
+- Follow the existing test patterns
+
+## Your Development Process
+
+When assigned a new class to implement:
+
+1. First, review:
+   - `docs/DeveloperGuidelines.md`
+   - `docs/API.md`
+   - `docs/ThirdPartyDependencies.md`
+
+2. Create your files:
+   ```
+   src/<category>/<ClassName>.h
+   src/<category>/<ClassName>.cpp
+   tests/<category>/<ClassName>Tests.cpp
+   ```
+
+3. Update `CMakeLists.txt`:
+   - Add source files to `SOURCES`
+   - Add test files to `TEST_SOURCES`
+
+4. Document your API in `docs/API.md`
+
+5. Implement comprehensive unit tests
+
+## Reference Implementation
+
+Study these files as examples of proper implementation:
+- `src/graphics/Window.h`
+- `src/graphics/Window.cpp`
+- `tests/graphics/WindowTests.cpp`
+
+## Important Notes
+
+1. The build system uses CMake with CPM for dependency management
+2. All executables are placed in `build/bin/<Config>`
+3. DLLs are automatically copied to executable directories
+4. The project uses C++17 features
+
+When responding to tasks, always:
+1. Confirm your understanding of the requirements
+2. Outline your implementation approach
+3. Implement the code following these guidelines
+4. Provide clear documentation
+5. Include comprehensive unit tests
+
+Remember: You are part of a larger team. Your code should be clean, well-documented, and maintainable by other developers.
+
+
+=== FILE: .\docs\API.md ===
+# ShoeEngine API Documentation
+
+## Graphics
+
+### Window Class
+`ShoeEngine::Graphics::Window`
+
+The Window class provides a high-level interface for managing game windows. It wraps SFML's window functionality in a more manageable, RAII-compliant interface.
+
+#### Constructor
+```cpp
+Window(const std::string& title, unsigned int width, unsigned int height)
+```
+Creates a new window with the specified title and dimensions.
+- **Parameters:**
+  - `title`: Window title text
+  - `width`: Window width in pixels
+  - `height`: Window height in pixels
+
+#### Methods
+
+##### `bool IsOpen() const`
+Checks if the window is currently open.
+- **Returns:** `true` if the window is open, `false` otherwise
+
+##### `void Close()`
+Closes the window.
+
+##### `bool ProcessEvents()`
+Processes all pending window events.
+- **Returns:** `true` if the window should remain open, `false` if it should close
+- **Note:** Automatically handles the window close button event
+
+##### `void Display()`
+Updates the window with any changes since the last call.
+
+##### `void Clear()`
+Clears the window with a black background.
+
+##### `sf::RenderWindow& GetRenderWindow()`
+Provides access to the underlying SFML window.
+- **Returns:** Reference to the SFML RenderWindow
+- **Note:** Use with caution as it exposes SFML implementation details
+
+### WindowManager Class
+`ShoeEngine::Graphics::WindowManager`
+
+The WindowManager class manages the creation and lifecycle of Window objects from JSON configuration data. It inherits from BaseManager to integrate with the DataManager system.
+
+#### Constructor
+```cpp
+WindowManager()
+```
+Creates a new WindowManager instance.
+
+#### Methods
+
+##### `bool CreateFromJson(const nlohmann::json& jsonData) override`
+Creates Window objects based on JSON configuration data.
+- **Parameters:**
+  - `jsonData`: JSON object containing window configurations
+- **Returns:** `true` if windows were created successfully, `false` if an error occurred
+
+##### `std::string GetManagedType() const override`
+Returns the type identifier for this manager.
+- **Returns:** `"windows"` as the managed type
+
+##### `bool ProcessEvents()`
+Processes events for all managed windows.
+- **Returns:** `true` if any windows are still open, `false` if all windows are closed
+
+##### `void ClearAll()`
+Clears all managed windows with a black background.
+
+##### `void DisplayAll()`
+Updates all managed windows with any changes since the last call.
+
+##### `const std::vector<std::unique_ptr<Window>>& GetWindows() const`
+Gets all managed window instances.
+- **Returns:** Const reference to the vector of window pointers
+
+#### JSON Configuration Format
+```json
+{
+    "windows": {
+        "window_name": {
+            "title": "Window Title",
+            "width": 800,
+            "height": 600
+        }
+    }
+}
+```
+- **Properties:**
+  - `title`: (string, optional) Window title text, defaults to "ShoeEngine Window"
+  - `width`: (number, optional) Window width in pixels, defaults to 800
+  - `height`: (number, optional) Window height in pixels, defaults to 600
+
+### Image Class
+`ShoeEngine::Graphics::Image`
+
+The Image class provides a wrapper around SFML's image functionality, allowing for loading and manipulation of image data.
+
+#### Constructor
+```cpp
+Image(const uint8_t* pixels, unsigned int width, unsigned int height)
+```
+Creates a new image from raw pixel data.
+- **Parameters:**
+  - `pixels`: Raw pixel data in RGBA format
+  - `width`: Image width in pixels
+  - `height`: Image height in pixels
+
+#### Methods
+
+##### `bool LoadFromFile(const std::string& filename)`
+Loads an image from a file.
+- **Parameters:**
+  - `filename`: Path to the image file
+- **Returns:** `true` if loading was successful
+
+##### `bool SaveToFile(const std::string& filename)`
+Saves the image to a file.
+- **Parameters:**
+  - `filename`: Path to save the image to
+- **Returns:** `true` if saving was successful
+
+### ImageManager Class
+`ShoeEngine::Graphics::ImageManager`
+
+The ImageManager class manages the creation and storage of Image objects from JSON configuration data.
+
+#### Methods
+
+##### `bool CreateFromJson(const nlohmann::json& jsonData)`
+Creates images from JSON configuration data.
+- **Parameters:**
+  - `jsonData`: JSON data containing image definitions
+- **Returns:** `true` if creation was successful
+
+##### `const Image* GetImage(const std::string& imageId) const`
+Retrieves an image by its ID.
+- **Parameters:**
+  - `imageId`: Unique identifier for the image
+- **Returns:** Pointer to the Image object, or nullptr if not found
+
+### Sprite Class
+`ShoeEngine::Graphics::Sprite`
+
+The Sprite class wraps SFML's sprite functionality, providing methods for sprite transformation and rendering.
+
+#### Methods
+
+##### `void SetPosition(float x, float y)`
+Sets the position of the sprite.
+- **Parameters:**
+  - `x`: X coordinate
+  - `y`: Y coordinate
+
+##### `void SetRotation(float angle)`
+Sets the rotation of the sprite.
+- **Parameters:**
+  - `angle`: Rotation angle in degrees
+
+##### `void SetScale(float x, float y)`
+Sets the scale factors of the sprite.
+- **Parameters:**
+  - `x`: Horizontal scale factor
+  - `y`: Vertical scale factor
+
+##### `void SetOrigin(float x, float y)`
+Sets the origin point of the sprite for transformations.
+- **Parameters:**
+  - `x`: X coordinate of the origin
+  - `y`: Y coordinate of the origin
+
+### SpriteManager Class
+`ShoeEngine::Graphics::SpriteManager`
+
+The SpriteManager class manages the creation, storage, and serialization of Sprite objects from JSON configuration data.
+
+#### Methods
+
+##### `bool CreateFromJson(const nlohmann::json& jsonData)`
+Creates sprites from JSON configuration data.
+- **Parameters:**
+  - `jsonData`: JSON data containing sprite definitions
+- **Returns:** `true` if creation was successful
+
+##### `const Sprite* GetSprite(const std::string& spriteId) const`
+Retrieves a sprite by its ID.
+- **Parameters:**
+  - `spriteId`: Unique identifier for the sprite
+- **Returns:** Pointer to the Sprite object, or nullptr if not found
+
+##### `nlohmann::json SerializeToJson() override`
+Serializes all managed sprites to JSON format.
+- **Returns:** JSON array containing serialized data of all sprites
+- **Note:** The serialized format matches the format expected by `CreateFromJson`
+
+#### JSON Configuration Format
+```json
+{
+    "images": {
+        "image_id": {
+            "file": "path/to/image.png"
+        }
+    },
+    "sprites": {
+        "sprite_id": {
+            "image": "image_id",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "rotation": 0,
+            "scale": {
+                "x": 1,
+                "y": 1
+            },
+            "origin": {
+                "x": 0,
+                "y": 0
+            }
+        }
+    }
+}
+```
+
+#### JSON Serialization Format
+```json
+{
+    "objects": [
+        {
+            "type": "sprites",
+            "name": "sprite_name",
+            "image": "image_id",
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "rotation": 0.0,
+            "scale": {
+                "x": 1.0,
+                "y": 1.0
+            }
+        }
+    ]
+}
+```
+
+## Input
+
+### Input Class
+`ShoeEngine::Input::Input`
+
+The Input class represents a configurable input binding that can trigger actions based on keyboard or mouse input.
+
+#### Constructor
+```cpp
+Input(const std::string& name, Type type)
+```
+Creates a new input binding with the specified name and type.
+- **Parameters:**
+  - `name`: Unique identifier for this input binding
+  - `type`: Type of input (Keyboard, MouseButton, or MouseAxis)
+
+#### Methods
+
+##### `void SetKey(sf::Keyboard::Key key)`
+Sets the keyboard key for this input binding.
+- **Parameters:**
+  - `key`: SFML keyboard key enumeration value
+
+##### `void SetMouseButton(sf::Mouse::Button button)`
+Sets the mouse button for this input binding.
+- **Parameters:**
+  - `button`: SFML mouse button enumeration value
+
+##### `void SetCallback(std::function<void()> callback)`
+Sets the action callback that will be triggered when the input is activated.
+- **Parameters:**
+  - `callback`: Function to be called when input is triggered
+
+##### `const std::string& GetName() const`
+Gets the name of this input binding.
+- **Returns:** The input binding's name
+
+##### `void SetContext(const std::string& context)`
+Sets the context in which this input is active.
+- **Parameters:**
+  - `context`: Context identifier string
+
+##### `const std::string& GetContext() const`
+Gets the current context of this input.
+- **Returns:** The current context identifier
+
+### InputManager Class
+`ShoeEngine::Input::InputManager`
+
+The InputManager class handles the creation and management of input bindings from JSON configuration data.
+
+#### Constructor
+```cpp
+InputManager()
+```
+Creates a new input manager instance.
+
+#### Methods
+
+##### `bool CreateFromJson(const nlohmann::json& jsonData)`
+Creates input bindings from JSON configuration data.
+- **Parameters:**
+  - `jsonData`: JSON object containing input definitions
+- **Returns:** True if inputs were created successfully
+
+##### `void Update()`
+Updates all active input states and triggers callbacks if necessary.
+
+##### `void SetContext(const std::string& context)`
+Sets the current input context, affecting which input bindings are active.
+- **Parameters:**
+  - `context`: Context identifier string
+
+##### `Input* GetInput(const std::string& name)`
+Retrieves an input binding by name.
+- **Parameters:**
+  - `name`: Name of the input binding to retrieve
+- **Returns:** Pointer to the input binding, or nullptr if not found
+
+## Core
+
+### BaseManager Class
+`ShoeEngine::Core::BaseManager`
+
+The BaseManager class serves as the base class for all managers that handle object creation and serialization.
+
+#### Methods
+
+##### `virtual nlohmann::json SerializeToJson()`
+Serializes managed objects to JSON format.
+- **Returns:** JSON object containing serialized data of all managed objects
+- **Note:** Default implementation returns an empty JSON object. Derived classes should override this to implement their own serialization.
+
+##### `virtual bool CreateFromJson(const nlohmann::json& jsonData) = 0`
+Pure virtual function that must be implemented by derived classes to handle object creation from JSON data.
+- **Parameters:**
+  - `jsonData`: JSON data containing object definitions
+- **Returns:** `true` if objects were created successfully, `false` otherwise
+
+##### `virtual std::string GetManagedType() const = 0`
+Pure virtual function that must be implemented by derived classes to identify the type of objects they manage.
+- **Returns:** String identifier for the manager's object type
+
+### DataManager Class
+`ShoeEngine::Core::DataManager`
+
+The DataManager class serves as a central manager for loading and distributing JSON data to type-specific managers. It reads JSON data files and routes the data to appropriate managers based on object types.
+
+#### Constructor
+```cpp
+DataManager()
+```
+Creates a new DataManager instance.
+
+#### Methods
+
+##### `bool RegisterManager(std::unique_ptr<BaseManager> manager)`
+Registers a new manager for handling a specific object type.
+- **Parameters:**
+  - `manager`: Unique pointer to a manager derived from BaseManager
+- **Returns:** `true` if registration was successful, `false` if type already registered
+
+##### `bool LoadFromFile(const std::string& filePath)`
+Loads and processes JSON data from a file.
+- **Parameters:**
+  - `filePath`: Path to the JSON file
+- **Returns:** `true` if loading and processing was successful
+
+##### `bool SaveToFile(const std::string& filePath)`
+Saves all managed objects to a JSON file.
+- **Parameters:**
+  - `filePath`: Path to save the JSON file
+- **Returns:** `true` if saving was successful
+- **Note:** Combines serialized data from all registered managers into a single JSON file
+
+##### `bool ProcessData(const nlohmann::json& jsonData)`
+Processes JSON data directly, distributing it to registered managers.
+- **Parameters:**
+  - `jsonData`: The JSON data to process
+- **Returns:** `true` if processing was successful
+
+#### Example Usage
+```cpp
+// Create and register a sprite manager
+auto spriteManager = std::make_unique<SpriteManager>();
+dataManager.RegisterManager(std::move(spriteManager));
+
+// Load and process data from a JSON file
+dataManager.LoadFromFile("data/game_objects.json");
+```
+
+#### JSON Data Format
+The JSON data should be structured with top-level keys matching the managed types:
+```json
+{
+    "sprites": {
+        // Sprite-specific data handled by SpriteManager
+    },
+    "textures": {
+        // Texture-specific data handled by TextureManager
+    }
+}
+```
+
+
+=== FILE: .\docs\DeveloperGuidelines.md ===
+# ShoeEngine Developer Guidelines
+
+## Overview
+ShoeEngine is a highly modular, data-driven 2D game engine built in C++. The engine's core philosophy is based on JSON-driven architecture, where game objects and their configurations are defined in JSON data files and instantiated through a managed factory system.
+
+## Code Organization
+
+### Namespace Structure
+- All engine code must reside within the `ShoeEngine` namespace
+- Each broad category of functionality must have its own namespace within `ShoeEngine`
+- Category namespaces must correspond directly to their source directory under `src/`
+- Example structure:
+  ```cpp
+  namespace ShoeEngine {      // All engine code
+  namespace Graphics {        // src/graphics/
+      class Window { ... }
+  }
+  namespace Physics {         // src/physics/
+      class RigidBody { ... }
+  }
+  namespace Audio {          // src/audio/
+      class SoundSystem { ... }
+  }
+  }  // namespace ShoeEngine
+  ```
+
+### File Structure
+- Header (.h) and implementation (.cpp) files are kept together in the same directory
+- Files are organized in logical directories under `src/` based on their functionality
+- Example structure:
+  ```
+  ShoeEngine/
+  ├── src/                 # Source files (.h and .cpp)
+  │   ├── core/           # Core engine functionality
+  │   ├── graphics/       # Graphics related code
+  │   ├── input/          # Input handling
+  │   ├── physics/        # Physics engine
+  │   └── audio/          # Audio system
+  ├── docs/               # Documentation with examples
+  └── tests/              # Unit tests
+  ```
+
+### Naming Conventions
+- Namespaces: PascalCase (e.g., `ShoeEngine`, `Graphics`, `Physics`)
+- Classes: PascalCase (e.g., `DataManager`, `WindowManager`)
+- Functions: PascalCase (e.g., `CreateWindow`, `LoadData`)
+- Variables: camelCase (e.g., `windowConfig`, `spriteData`)
+- Constants: UPPER_SNAKE_CASE (e.g., `MAX_WINDOW_SIZE`)
+- Private member variables: m_camelCase (e.g., `m_windowManager`)
+- File names: Same as class name (e.g., `WindowManager.h`, `WindowManager.cpp`)
+
+## Documentation Standards
+
+### Class Documentation
+```cpp
+/**
+ * @class ClassName
+ * @brief Brief description of the class
+ *
+ * Detailed description of the class functionality,
+ * including its role in the engine.
+ *
+ * @note Any important notes about usage
+ */
+```
+
+### Function Documentation
+```cpp
+/**
+ * @brief Brief description of function purpose
+ *
+ * Detailed description of what the function does
+ *
+ * @param paramName Description of parameter
+ * @return Description of return value
+ * @throws Description of potential exceptions
+ *
+ * @example
+ * // Example usage of the function
+ * auto result = object.Function(params);
+ *
+ * @note Any important implementation notes
+ * @see Related functions or classes
+ */
+```
+
+## Core Architecture
+
+### Data-Driven Design
+1. All game objects and configurations are defined in JSON
+2. The `DataManager` is the central hub for JSON parsing
+3. Specialized managers handle specific object types
+4. Example JSON structure:
+```json
+{
+    "window": {
+        "title": "Game Window",
+        "width": 800,
+        "height": 600
+    },
+    "sprites": [
+        {
+            "id": "player",
+            "texture": "player.png",
+            "animations": [...]
+        }
+    ]
+}
+```
+
+### Manager System
+1. `DataManager`: Central JSON parsing and distribution
+2. Specialized Managers (e.g., `WindowManager`, `SpriteManager`):
+   - Register with `DataManager`
+   - Receive relevant JSON data
+   - Create and manage their specific object types
+
+### Error Handling
+- Use exceptions for exceptional cases
+- Return values or std::optional for expected failure cases
+- All errors should be logged with meaningful messages
+- Example:
+```cpp
+class GameError : public std::runtime_error {
+    // Custom error class for game-specific errors
+};
+```
+
+## Best Practices
+
+### Memory Management
+- Use smart pointers (`std::unique_ptr`, `std::shared_ptr`) over raw pointers
+- Follow RAII principles
+- Avoid circular dependencies
+- Use move semantics where appropriate
+
+### Performance
+- Minimize heap allocations
+- Use references for passing large objects
+- Consider object pooling for frequently created/destroyed objects
+- Profile early and often
+
+### Testing
+- Every class MUST have a corresponding unit test suite
+- Unit tests should be organized to mirror the source code structure
+- Test files should be named `{ClassName}Tests.cpp`
+- Write unit tests for all public interfaces
+- Test edge cases and error conditions
+- Use mock objects for testing manager interactions
+- Aim for high code coverage (target: >90%)
+- Example test structure:
+```cpp
+// WindowManagerTests.cpp
+TEST_CASE("WindowManager basic operations") {
+    SECTION("creates window from valid JSON") {
+        // Test code
+    }
+    
+    SECTION("handles invalid JSON gracefully") {
+        // Test code
+    }
+    
+    SECTION("manages multiple windows") {
+        // Test code
+    }
+}
+```
+
+Test organization example:
+```
+tests/
+├── core/
+│   ├── DataManagerTests.cpp
+│   └── WindowManagerTests.cpp
+├── graphics/
+│   └── SpriteManagerTests.cpp
+└── TestMain.cpp
+```
+
+No pull request should be merged without corresponding unit tests for new functionality.
+
+## JSON Schema Standards
+All JSON configuration files should follow predefined schemas. Example:
+```json
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "window": {
+            "type": "object",
+            "required": ["title", "width", "height"],
+            "properties": {
+                "title": { "type": "string" },
+                "width": { "type": "integer", "minimum": 1 },
+                "height": { "type": "integer", "minimum": 1 }
+            }
+        }
+    }
+}
+```
+
+## Version Control Guidelines
+- Use descriptive commit messages
+- Follow semantic versioning
+- Create feature branches for new features
+- Use pull requests for code review
+
+## Build System
+- Use CMake for cross-platform build configuration
+- Use CPM.cmake for dependency management
+- Maintain separate debug and release configurations
+- Example CMake structure:
+  ```cmake
+  # Minimum required CMake version
+  cmake_minimum_required(VERSION 3.14)
+  
+  # Project declaration
+  project(ShoeEngine VERSION 0.1.0)
+  
+  # Download CPM.cmake
+  set(CPM_DOWNLOAD_VERSION 0.38.6)
+  set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+  if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
+    message(STATUS "Downloading CPM.cmake...")
+    file(DOWNLOAD
+        https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+        ${CPM_DOWNLOAD_LOCATION}
+    )
+  endif()
+  include(${CPM_DOWNLOAD_LOCATION})
+  
+  # Example dependency inclusion with CPM
+  CPMAddPackage(
+    NAME fmt
+    GITHUB_REPOSITORY fmtlib/fmt
+    GIT_TAG 10.1.1
+  )
+  ```
+
+## Dependencies
+- Use CPM.cmake for automated dependency management
+- All dependencies should be declared in the root CMakeLists.txt
+- Each dependency should specify an exact version
+- Dependencies are automatically downloaded and built during CMake configuration
+- Example dependency declaration:
+  ```cmake
+  CPMAddPackage(
+    NAME dependency_name
+    GITHUB_REPOSITORY user/repo
+    GIT_TAG v1.0.0
+  )
+  ```
+
+## Contribution Guidelines
+1. Fork the repository
+2. Create a feature branch
+3. Follow coding standards
+4. Write tests
+5. Submit pull request
+6. Update documentation
+
+## Examples
+All examples of engine usage will be included directly in the API documentation of relevant classes and functions.
+
+
+=== FILE: .\docs\DumpExplaination.md ===
+I have uploaded two files that describe my C++ project:
+
+1. `project_structure.txt`: This file contains the directory tree of my project, showing the structure of folders and files. Note that the `build` and `.git` directories are intentionally excluded.
+2. `project_dump.txt`: This file contains the contents of important files in my project, including `.cpp`, `.h`, `CMakeLists.txt`, `.md`, and `.bat` files. Each file is labeled with `=== FILE: path/to/file ===` to indicate where each file begins.
+
+
+=== FILE: .\docs\ThirdPartyDependencies.md ===
+# Third Party Dependencies
+
+This document tracks all third-party libraries used in ShoeEngine, their versions, purposes, and licenses.
+
+## SFML (Simple and Fast Multimedia Library)
+- **Version**: 2.6.1 (Latest stable release)
+- **Purpose**: SFML provides a simple interface to various multimedia components needed for game development, including:
+  - Graphics rendering
+  - Window management
+  - Input handling
+  - Audio playback
+  - Networking capabilities
+- **License**: zlib/libpng license
+  - Permissive free software license
+  - Allows free commercial and non-commercial use
+  - Source: https://www.sfml-dev.org/license.php
+
+## nlohmann/json
+- **Version**: 3.11.3
+- **Purpose**: A modern C++ JSON library that provides:
+  - Intuitive syntax for JSON handling
+  - Type safety and modern C++ features
+  - Efficient parsing and serialization
+  - Comprehensive error handling
+- **License**: MIT License
+  - Permissive open-source license
+  - Allows commercial use, modification, distribution, and private use
+  - Source: https://github.com/nlohmann/json/blob/develop/LICENSE.MIT
+
+
+=== FILE: .\src\main.cpp ===
+/**
+ * @file main.cpp
+ * @brief Entry point for the ShoeEngine application
+ */
+
+#include <iostream>
+#include "core/DataManager.h"
+#include "graphics/WindowManager.h"
+#include "graphics/ImageManager.h"
+#include "graphics/SpriteManager.h"
+#include "input/InputManager.h"
+#include <vector>
+
+/**
+ * @brief Main entry point for the ShoeEngine application
+ * 
+ * @return int Exit code (0 for success, non-zero for failure)
+ */
+int main() {
+    try {
+        std::cout << "ShoeEngine initializing..." << std::endl;
+        
+        // Create test image if it doesn't exist
+        {
+            // Create a 32x32 blue square with a white border
+            std::vector<uint8_t> pixels(32 * 32 * 4, 0);
+            for (int y = 0; y < 32; ++y) {
+                for (int x = 0; x < 32; ++x) {
+                    int index = (y * 32 + x) * 4;
+                    if (x == 0 || x == 31 || y == 0 || y == 31) {
+                        // White border
+                        pixels[index] = 255;     // R
+                        pixels[index + 1] = 255; // G
+                        pixels[index + 2] = 255; // B
+                        pixels[index + 3] = 255; // A
+                    } else {
+                        // Blue fill
+                        pixels[index] = 0;       // R
+                        pixels[index + 1] = 0;   // G
+                        pixels[index + 2] = 255; // B
+                        pixels[index + 3] = 255; // A
+                    }
+                }
+            }
+
+            ShoeEngine::Graphics::Image image(pixels.data(), 32, 32);
+            image.SaveToFile("data/images/player.png");
+        }
+        
+        // Create and configure the data manager
+        ShoeEngine::Core::DataManager dataManager;
+
+        // Create and register managers
+        auto windowManager = std::make_unique<ShoeEngine::Graphics::WindowManager>(dataManager);
+        auto imageManager = std::make_unique<ShoeEngine::Graphics::ImageManager>(dataManager);
+        auto spriteManager = std::make_unique<ShoeEngine::Graphics::SpriteManager>(dataManager, *imageManager);
+        auto inputManager = std::make_unique<ShoeEngine::Input::InputManager>(dataManager);
+
+        // Store raw pointers before moving
+        auto* winManager = windowManager.get();
+        auto* imgManager = imageManager.get();
+        auto* sprManager = spriteManager.get();
+        auto* inpManager = inputManager.get();
+
+        // Register managers
+        dataManager.RegisterManager(std::move(windowManager));
+        dataManager.RegisterManager(std::move(imageManager));
+        dataManager.RegisterManager(std::move(spriteManager));
+        dataManager.RegisterManager(std::move(inputManager));
+
+        // Load game configuration from JSON
+        if (!dataManager.LoadFromFile("data/sample.json")) {
+            throw std::runtime_error("Failed to load game configuration");
+        }
+
+        if (!winManager || winManager->GetWindows().empty()) {
+            throw std::runtime_error("No windows were created from configuration");
+        }
+
+        // Set initial context for input
+        inpManager->SetContext("gameplay"_h);
+
+        // Debug: Print loaded inputs
+        std::cout << "Loaded inputs:\n";
+        for (const auto& name : {"move_left"_h, "move_right"_h, "move_up"_h, "move_down"_h}) {
+            if (auto* input = inpManager->GetInput(name)) {
+                std::cout << "  " << name << " loaded successfully\n";
+            } else {
+                std::cout << "  " << name << " failed to load\n";
+            }
+        }
+
+        // Movement speed (pixels per frame)
+        const float MOVEMENT_SPEED = 0.1f;
+
+        // Main game loop
+        while (winManager->ProcessEvents()) {
+            // Handle input and move sprite
+            if (auto* sprite = sprManager->GetSprite("player_sprite"_h)) {
+                // Check each input and apply movement if active
+                if (auto* input = inpManager->GetInput("move_left"_h)) {
+                    if (input->IsActive()) {
+                        sprite->Move(-MOVEMENT_SPEED, 0);
+                    }
+                }
+                if (auto* input = inpManager->GetInput("move_right"_h)) {
+                    if (input->IsActive()) {
+                        sprite->Move(MOVEMENT_SPEED, 0);
+                    }
+                }
+                if (auto* input = inpManager->GetInput("move_up"_h)) {
+                    if (input->IsActive()) {
+                        sprite->Move(0, -MOVEMENT_SPEED);
+                    }
+                }
+                if (auto* input = inpManager->GetInput("move_down"_h)) {
+                    if (input->IsActive()) {
+                        sprite->Move(0, MOVEMENT_SPEED);
+                    }
+                }
+            }
+
+            winManager->ClearAll();
+
+            // Get the main window
+            auto& window = winManager->GetWindows()[0]->GetRenderWindow();
+
+            // Draw all sprites
+            if (auto* sprite = sprManager->GetSprite("player_sprite"_h)) {
+                window.draw(sprite->GetSFMLSprite());
+            }
+
+            winManager->DisplayAll();
+        }
+
+        return 0;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Fatal error: " << e.what() << std::endl;
+        return 1;
+    }
+}
+
+
+=== FILE: .\src\core\BaseManager.h ===
+#pragma once
+
+#include "Hash.h"
+#include <nlohmann/json.hpp>
+
+namespace ShoeEngine {
+namespace Core {
+
+class DataManager;  // Forward declaration
+
+/**
+ * @class BaseManager
+ * @brief Base class for all managers that handle object creation from JSON data
+ *
+ * This abstract class defines the interface that all specific managers must implement
+ * to handle creation of their respective objects from JSON data.
+ */
+class BaseManager {
+public:
+    /**
+     * @brief Constructor taking a reference to the DataManager
+     * @param dataManager Reference to the DataManager for string registration
+     */
+    explicit BaseManager(DataManager& dataManager) : m_dataManager(dataManager) {}
+
+    /**
+     * @brief Virtual destructor to ensure proper cleanup of derived classes
+     */
+    virtual ~BaseManager() = default;
+
+    /**
+     * @brief Pure virtual function to handle object creation from JSON data
+     * @param jsonData The JSON data containing object definitions
+     * @return bool True if the objects were created successfully, false otherwise
+     */
+    virtual bool CreateFromJson(const nlohmann::json& jsonData) = 0;
+
+    /**
+     * @brief Get the type of objects this manager handles
+     * @return Hash::HashValue The type identifier for this manager
+     */
+    virtual Hash::HashValue GetManagedType() const = 0;
+
+    /**
+     * @brief Virtual function to serialize managed objects to JSON
+     * @return nlohmann::json JSON object containing serialized data of all managed objects
+     */
+    virtual nlohmann::json SerializeToJson() {
+        return nlohmann::json::array();
+    }
+
+protected:
+    DataManager& m_dataManager;  // Reference to the DataManager for string registration
+};
+
+} // namespace Core
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\core\DataManager.cpp ===
+#include "DataManager.h"
+#include <fstream>
+#include <stdexcept>
+
+namespace ShoeEngine {
+namespace Core {
+
+DataManager::DataManager() = default;
+DataManager::~DataManager() = default;
+
+bool DataManager::RegisterManager(std::unique_ptr<BaseManager> manager) {
+    auto type = manager->GetManagedType();
+    if (m_managers.find(type) != m_managers.end()) {
+        return false;
+    }
+    m_managers[type] = std::move(manager);
+    return true;
+}
+
+Hash::HashValue DataManager::RegisterString(const std::string& str) {
+    Hash::HashValue hash(str.c_str(), static_cast<uint32_t>(str.length()));
+    m_stringRegistry[hash] = str;
+    return hash;
+}
+
+const std::string& DataManager::GetString(const Hash::HashValue& hash) const {
+    static const std::string empty;
+    auto it = m_stringRegistry.find(hash);
+    return it != m_stringRegistry.end() ? it->second : empty;
+}
+
+bool DataManager::LoadFromFile(const std::string& filePath) {
+    try {
+        std::ifstream file(filePath);
+        if (!file.is_open()) {
+            return false;
+        }
+
+        nlohmann::json jsonData;
+        file >> jsonData;
+        return ProcessData(jsonData);
+    }
+    catch (const std::exception&) {
+        return false;
+    }
+}
+
+bool DataManager::ProcessData(const nlohmann::json& jsonData) {
+    bool anyManagerProcessed = false;
+    bool allProcessedSuccessfully = true;
+
+    if (jsonData.contains("objects") && jsonData["objects"].is_array()) {
+        for (const auto& object : jsonData["objects"]) {
+            if (!object.contains("type")) {
+                continue;
+            }
+
+            std::string typeStr = object["type"].get<std::string>();
+            Hash::HashValue typeHash(typeStr.c_str(), static_cast<uint32_t>(typeStr.length()));
+            
+            auto it = m_managers.find(typeHash);
+            if (it != m_managers.end()) {
+                anyManagerProcessed = true;
+                nlohmann::json objectData;
+                objectData[object["name"].get<std::string>()] = object;
+                if (!it->second->CreateFromJson(objectData)) {
+                    allProcessedSuccessfully = false;
+                }
+            }
+        }
+    }
+
+    return anyManagerProcessed && allProcessedSuccessfully;
+}
+
+bool DataManager::SaveToFile(const std::string& filePath) {
+    try {
+        nlohmann::json rootJson;
+        nlohmann::json objectsJson = nlohmann::json::array();
+
+        // Iterate through all managers and collect their serialized data
+        for (const auto& [type, manager] : m_managers) {
+            nlohmann::json managerData = manager->SerializeToJson();
+            if (!managerData.empty()) {
+                // For each object in the manager's data, add type information
+                if (managerData.is_array()) {
+                    for (auto& obj : managerData) {
+                        obj["type"] = GetString(type);  // Use string registry to get type name
+                        objectsJson.push_back(obj);
+                    }
+                }
+            }
+        }
+
+        rootJson["objects"] = objectsJson;
+
+        // Write to file
+        std::ofstream file(filePath);
+        if (!file.is_open()) {
+            return false;
+        }
+        file << rootJson.dump(4);  // Use 4 spaces for indentation
+        file.close();
+        return true;
+    }
+    catch (const std::exception&) {
+        return false;
+    }
+}
+
+BaseManager* DataManager::GetManager(const Core::Hash::HashValue& type) {
+    auto it = m_managers.find(type);
+    if (it != m_managers.end()) {
+        return it->second.get();
+    }
+    return nullptr;
+}
+
+} // namespace Core
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\core\DataManager.h ===
+#pragma once
+
+#include "BaseManager.h"
+#include "Hash.h"
+#include <nlohmann/json.hpp>
+#include <memory>
+#include <vector>
+#include <string>
+#include <unordered_map>
+
+namespace ShoeEngine {
+namespace Core {
+
+/**
+ * @class DataManager
+ * @brief Central manager for loading and distributing JSON data to type-specific managers
+ *
+ * This class is responsible for reading JSON data files and distributing the data
+ * to the appropriate managers based on object types. It also maintains a registry
+ * of strings used by managers for serialization.
+ */
+class DataManager {
+public:
+    /**
+     * @brief Constructor
+     */
+    DataManager();
+
+    /**
+     * @brief Destructor
+     */
+    ~DataManager();
+
+    /**
+     * @brief Register a manager for a specific object type
+     * @param manager Pointer to the manager to register
+     * @return bool True if registration was successful, false if type already registered
+     */
+    bool RegisterManager(std::unique_ptr<BaseManager> manager);
+
+    /**
+     * @brief Load and process JSON data from a file
+     * @param filePath Path to the JSON file
+     * @return bool True if loading and processing was successful
+     */
+    bool LoadFromFile(const std::string& filePath);
+
+    /**
+     * @brief Process JSON data directly
+     * @param jsonData The JSON data to process
+     * @return bool True if processing was successful
+     */
+    bool ProcessData(const nlohmann::json& jsonData);
+
+    /**
+     * @brief Save all managed objects to a JSON file
+     * @param filePath Path to save the JSON file
+     * @return bool True if saving was successful
+     */
+    bool SaveToFile(const std::string& filePath);
+
+    /**
+     * @brief Get a registered manager by its type
+     * @param type The type of manager to retrieve
+     * @return BaseManager* Pointer to the manager, or nullptr if not found
+     */
+    BaseManager* GetManager(const Core::Hash::HashValue& type);
+
+    /**
+     * @brief Register a string with the DataManager and get its hash
+     * @param str The string to register
+     * @return HashValue The hash of the registered string
+     */
+    Hash::HashValue RegisterString(const std::string& str);
+
+    /**
+     * @brief Get the original string for a hash value
+     * @param hash The hash value to look up
+     * @return const std::string& The original string, or empty string if not found
+     */
+    const std::string& GetString(const Hash::HashValue& hash) const;
+
+private:
+    std::unordered_map<Hash::HashValue, std::unique_ptr<BaseManager>, Hash::Hasher> m_managers;
+    std::unordered_map<Hash::HashValue, std::string, Hash::Hasher> m_stringRegistry;
+};
+
+} // namespace Core
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\core\Hash.h ===
+#pragma once
+
+#include <cstdint>  // for uint32_t
+#include <cstddef>  // for size_t
+#include <string>   // for std::string
+
+namespace ShoeEngine {
+namespace Core {
+
+/**
+ * @class Hash
+ * @brief Provides various hash functions for string and data hashing
+ * 
+ * Implements multiple hash algorithms including MurmurHash3, FNV-1a, and universal hash.
+ * Can be used for hash table implementations and data integrity checks.
+ */
+class Hash
+{
+public:
+    /**
+     * @brief Computes MurmurHash3 for the given data
+     * @param key Pointer to data to hash
+     * @param len Length of data in bytes
+     * @param seed Optional seed value
+     * @return 32-bit hash value
+     *
+     * Note: Marked constexpr, but may fail to compile on some compilers/standards
+     *       due to pointer arithmetic.
+     */
+    static constexpr std::uint32_t MurmurHash3(const char* key, std::uint32_t len, std::uint32_t seed = 0)
+    {
+        constexpr std::uint32_t c1 = 0xcc9e2d51;
+        constexpr std::uint32_t c2 = 0x1b873593;
+        constexpr std::uint32_t r1 = 15;
+        constexpr std::uint32_t r2 = 13;
+        constexpr std::uint32_t m  = 5;
+        constexpr std::uint32_t n  = 0xe6546b64;
+
+        std::uint32_t hash = seed;
+
+        const int numBlocks = len / 4;
+        const std::uint32_t* blocks = (const std::uint32_t*)(key);
+
+        for (int i = 0; i < numBlocks; i++) {
+            std::uint32_t k = blocks[i];
+            k *= c1;
+            k = (k << r1) | (k >> (32 - r1)); // Rotate left
+            k *= c2;
+
+            hash ^= k;
+            hash = ((hash << r2) | (hash >> (32 - r2))) * m + n;
+        }
+
+		const std::uint8_t* tail = (const std::uint8_t*)(key + numBlocks * 4);
+        std::uint32_t k1 = 0;
+
+        switch (len & 3) {
+        case 3: k1 ^= (tail[2] << 16);
+            [[fallthrough]];
+        case 2: k1 ^= (tail[1] << 8);
+            [[fallthrough]];
+        case 1:
+            k1 ^= tail[0];
+            k1 *= c1;
+            k1 = (k1 << r1) | (k1 >> (32 - r1));
+            k1 *= c2;
+            hash ^= k1;
+            break;
+        }
+
+        hash ^= len;
+        hash ^= (hash >> 16);
+        hash *= 0x85ebca6b;
+        hash ^= (hash >> 13);
+        hash *= 0xc2b2ae35;
+        hash ^= (hash >> 16);
+
+        return hash;
+    }
+
+    /**
+     * @brief Computes FNV-1a hash for the given data
+     * @param key Pointer to data to hash
+     * @param len Length of data in bytes
+     * @param seed Optional seed value
+     * @return 32-bit hash value
+     *
+     * Note: Marked constexpr, but may fail to compile on some compilers/standards
+     *       due to pointer arithmetic.
+     */
+    static constexpr uint32_t FNV1a(const char* key, uint32_t len, uint32_t seed = 0)
+    {
+        constexpr uint32_t fnv_prime = 16777619;
+        uint32_t hash = seed;
+
+        for (uint32_t i = 0; i < len; i++)
+        {
+            hash ^= static_cast<uint8_t>(key[i]);
+            hash *= fnv_prime;
+        }
+
+        return hash;
+    }
+
+    /**
+     * @brief Computes universal hash for the given string
+     * @param str Null-terminated string to hash
+     * @param seed Optional seed value
+     * @return 32-bit hash value
+     *
+     * Note: Marked constexpr, but may fail to compile on some compilers/standards
+     *       due to modulo operation, etc.
+     */
+    static constexpr uint32_t Universal(const char* str, uint32_t seed = 0)
+    {
+        constexpr uint32_t mod  = 1'000'000'009U;
+        constexpr uint32_t base = 257U;
+
+        uint32_t hash = seed;
+        for (uint32_t i = 0; str[i] != '\0'; ++i)
+        {
+            hash = (hash * base + static_cast<unsigned char>(str[i])) % mod;
+        }
+        return hash;
+    }
+
+    /**
+     * @class HashValue
+     * @brief Represents a computed hash value with comparison operations
+     */
+    class HashValue
+    {
+    public:
+        constexpr HashValue()
+            : m_hash(0)
+        {
+        }
+
+        constexpr HashValue(uint32_t h)
+            : m_hash(h)
+        {
+        }
+
+        // Originally constexpr: calls FNV1a, which may cause issues on some compilers
+        // if FNV1a is not truly constexpr. We'll keep it as it was.
+        constexpr HashValue(const char* key, uint32_t len)
+            : m_hash(FNV1a(key, len))
+        {
+        }
+
+        // Conversion operator to uint32_t
+        constexpr operator uint32_t() const { return m_hash; }
+
+        // Comparisons
+        constexpr bool operator==(const HashValue& rhs) const { return m_hash == rhs.m_hash; }
+        constexpr bool operator==(uint32_t rhs)        const { return m_hash == rhs; }
+
+        // Combines this hash with a new key using FNV1a again
+        constexpr HashValue operator+(const std::string& key) const
+        {
+            // Cast size_t to uint32_t if you prefer 32-bit
+            return HashValue(FNV1a(key.c_str(), static_cast<uint32_t>(key.size()), m_hash));
+        }
+
+        uint32_t m_hash;
+    };
+
+    /**
+     * @struct Hasher
+     * @brief Functor for using HashValue in STL containers
+     */
+    struct Hasher
+    {
+        size_t operator()(const HashValue& h) const
+        {
+            // Typically safe to cast 32-bit to size_t
+            // (though on 64-bit systems size_t is larger).
+            return static_cast<size_t>(h.m_hash);
+        }
+    };
+};
+
+} // namespace Core
+} // namespace ShoeEngine
+
+// Add std::hash specialization for HashValue
+namespace std {
+    template<>
+    struct hash<ShoeEngine::Core::Hash::HashValue> {
+        size_t operator()(const ShoeEngine::Core::Hash::HashValue& h) const {
+            return static_cast<size_t>(h.m_hash);
+        }
+    };
+}
+
+/**
+ * @brief User-defined literal operator for creating a HashValue from a string literal.
+ * @param key String literal
+ * @param len Length of the literal
+ * @return HashValue computed by FNV1a
+ *
+ * Originally constexpr as well.
+ */
+constexpr ShoeEngine::Core::Hash::HashValue operator""_h(const char* key, size_t len)
+{
+	// Casting size_t (often 64-bit) to uint32_t if you want 32-bit hashing
+	return ShoeEngine::Core::Hash::HashValue(key, static_cast<uint32_t>(len));
+}
+
+
+=== FILE: .\src\graphics\Image.cpp ===
+#include "Image.h"
+#include <stdexcept>
+
+namespace ShoeEngine {
+namespace Graphics {
+
+Image::Image()
+    : m_image(std::make_unique<sf::Image>())
+{
+}
+
+Image::Image(const std::string& filePath)
+    : m_image(std::make_unique<sf::Image>())
+{
+    if (!LoadFromFile(filePath)) {
+        throw std::runtime_error("Failed to load image from file: " + filePath);
+    }
+}
+
+Image::Image(const uint8_t* pixels, unsigned int width, unsigned int height)
+    : m_image(std::make_unique<sf::Image>())
+{
+    if (!pixels || width == 0 || height == 0) {
+        throw std::invalid_argument("Invalid pixel data or dimensions");
+    }
+    m_image->create(width, height, pixels);
+}
+
+bool Image::LoadFromFile(const std::string& filePath)
+{
+    return m_image->loadFromFile(filePath);
+}
+
+bool Image::SaveToFile(const std::string& filePath) const
+{
+    return m_image->saveToFile(filePath);
+}
+
+unsigned int Image::GetWidth() const
+{
+    return m_image->getSize().x;
+}
+
+unsigned int Image::GetHeight() const
+{
+    return m_image->getSize().y;
+}
+
+const uint8_t* Image::GetPixels() const
+{
+    return m_image->getPixelsPtr();
+}
+
+Image Image::Clone() const
+{
+    Image newImage;
+    *newImage.m_image = *m_image;
+    return newImage;
+}
+
+const sf::Image& Image::GetSFMLImage() const
+{
+    return *m_image;
+}
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\graphics\Image.h ===
+#pragma once
+
+#include <SFML/Graphics/Image.hpp>
+#include "core/Hash.h"
+#include <string>
+#include <vector>
+#include <memory>
+
+namespace ShoeEngine {
+namespace Graphics {
+
+/**
+ * @class Image
+ * @brief A wrapper class for handling 2D images in the engine
+ *
+ * This class provides functionality to load, manipulate and store image data.
+ * It serves as a wrapper around SFML's image functionality while providing
+ * a more engine-specific interface.
+ */
+class Image {
+public:
+    /**
+     * @brief Default constructor creating an empty image
+     */
+    Image();
+
+    /**
+     * @brief Constructor that loads an image from a file
+     * @param filePath Path to the image file to load
+     * @throws std::runtime_error if the image cannot be loaded
+     */
+    explicit Image(const std::string& filePath);
+
+    /**
+     * @brief Constructor that creates an image from raw pixel data
+     * @param pixels Array of pixel data in RGBA format
+     * @param width Width of the image in pixels
+     * @param height Height of the image in pixels
+     * @throws std::invalid_argument if pixels is null or dimensions are invalid
+     */
+    Image(const uint8_t* pixels, unsigned int width, unsigned int height);
+
+    /**
+     * @brief Loads an image from a file
+     * @param filePath Path to the image file to load
+     * @return true if loading was successful, false otherwise
+     */
+    bool LoadFromFile(const std::string& filePath);
+
+    /**
+     * @brief Saves the image to a file
+     * @param filePath Path where to save the image
+     * @return true if saving was successful, false otherwise
+     */
+    bool SaveToFile(const std::string& filePath) const;
+
+    /**
+     * @brief Gets the width of the image
+     * @return Width in pixels
+     */
+    unsigned int GetWidth() const;
+
+    /**
+     * @brief Gets the height of the image
+     * @return Height in pixels
+     */
+    unsigned int GetHeight() const;
+
+    /**
+     * @brief Gets the pixel array of the image
+     * @return Const pointer to the pixel array in RGBA format
+     */
+    const uint8_t* GetPixels() const;
+
+    /**
+     * @brief Creates a copy of the image
+     * @return New Image instance with the same content
+     */
+    Image Clone() const;
+
+    /**
+     * @brief Get the underlying SFML image
+     * @return Reference to the internal SFML image
+     */
+    const sf::Image& GetSFMLImage() const;
+
+    /**
+     * @brief Sets the ID of the image
+     * @param id The ID to set
+     */
+    void SetId(const Core::Hash::HashValue& id) { m_id = id; }
+
+    /**
+     * @brief Gets the ID of the image
+     * @return The image's ID
+     */
+    Core::Hash::HashValue GetId() const { return m_id; }
+
+private:
+    std::unique_ptr<sf::Image> m_image; ///< Underlying SFML image
+    Core::Hash::HashValue m_id; ///< Image identifier
+};
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\graphics\ImageManager.cpp ===
+#include "ImageManager.h"
+#include <stdexcept>
+
+namespace ShoeEngine {
+namespace Graphics {
+
+bool ImageManager::CreateFromJson(const nlohmann::json& jsonData) {
+    try {
+        for (const auto& [imageId, imageData] : jsonData.items()) {
+            // Get the file path for the image
+            std::string filePath = imageData.at("file").get<std::string>();
+            
+            // Create a new image
+            auto image = std::make_unique<Image>();
+            
+            // Load the image from file
+            if (!image->LoadFromFile(filePath)) {
+                throw std::runtime_error("Failed to load image: " + filePath);
+            }
+            
+            // Create hash from image ID
+            Core::Hash::HashValue hashId(imageId.c_str(), static_cast<uint32_t>(imageId.length()));
+            
+            // Set the image ID
+            image->SetId(hashId);
+            
+            // Store the image
+            m_images[hashId] = std::move(image);
+        }
+        return true;
+    }
+    catch (const std::exception&) {
+        // Log error and return false
+        return false;
+    }
+}
+
+Core::Hash::HashValue ImageManager::GetManagedType() const {
+    return "images"_h;
+}
+
+const Image* ImageManager::GetImage(const Core::Hash::HashValue& imageId) const {
+    auto it = m_images.find(imageId);
+    return it != m_images.end() ? it->second.get() : nullptr;
+}
+
+void ImageManager::Clear() {
+    m_images.clear();
+}
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\graphics\ImageManager.h ===
+#pragma once
+
+#include "core/BaseManager.h"
+#include "Graphics/Image.h"
+#include <unordered_map>
+#include <memory>
+#include <string>
+
+namespace ShoeEngine {
+namespace Graphics {
+
+/**
+ * @class ImageManager
+ * @brief Manages creation and storage of Image objects from JSON data
+ *
+ * This class handles loading and managing Image objects, providing a centralized
+ * way to create and access images throughout the engine.
+ */
+class ImageManager : public Core::BaseManager {
+public:
+    /**
+     * @brief Constructor
+     * @param dataManager Reference to the DataManager for string registration
+     */
+    explicit ImageManager(Core::DataManager& dataManager) 
+        : Core::BaseManager(dataManager) {}
+
+    /**
+     * @brief Creates Image objects from JSON data
+     * @param jsonData JSON object containing image definitions
+     * @return bool True if all images were created successfully
+     */
+    bool CreateFromJson(const nlohmann::json& jsonData) override;
+
+    /**
+     * @brief Get the type of objects this manager handles
+     * @return Core::Hash::HashValue Hash of "images" as the managed type
+     */
+    Core::Hash::HashValue GetManagedType() const override;
+
+    /**
+     * @brief Get an image by its ID
+     * @param imageId The ID of the image to retrieve
+     * @return const Image* Pointer to the image, or nullptr if not found
+     */
+    const Image* GetImage(const Core::Hash::HashValue& imageId) const;
+
+    /**
+     * @brief Clear all managed images
+     */
+    void Clear();
+
+private:
+    std::unordered_map<Core::Hash::HashValue, std::unique_ptr<Image>, Core::Hash::Hasher> m_images;
+};
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\graphics\Sprite.cpp ===
+#include "Sprite.h"
+
+namespace ShoeEngine {
+namespace Graphics {
+
+Sprite::Sprite()
+    : m_sprite(std::make_unique<sf::Sprite>())
+    , m_texture(std::make_shared<sf::Texture>())
+    , m_image(nullptr)
+{
+}
+
+Sprite::Sprite(const Image& image)
+    : m_sprite(std::make_unique<sf::Sprite>())
+    , m_texture(std::make_shared<sf::Texture>())
+    , m_image(&image)
+{
+    SetImage(image);
+}
+
+void Sprite::SetPosition(float x, float y)
+{
+    m_sprite->setPosition(x, y);
+}
+
+void Sprite::SetRotation(float angle)
+{
+    m_sprite->setRotation(angle);
+}
+
+void Sprite::SetScale(float scaleX, float scaleY)
+{
+    m_sprite->setScale(scaleX, scaleY);
+}
+
+void Sprite::Move(float offsetX, float offsetY)
+{
+    m_sprite->move(offsetX, offsetY);
+}
+
+void Sprite::SetOrigin(float x, float y)
+{
+    m_sprite->setOrigin(x, y);
+}
+
+std::pair<float, float> Sprite::GetPosition() const
+{
+    const auto& pos = m_sprite->getPosition();
+    return {pos.x, pos.y};
+}
+
+float Sprite::GetRotation() const
+{
+    return m_sprite->getRotation();
+}
+
+std::pair<float, float> Sprite::GetScale() const
+{
+    const auto& scale = m_sprite->getScale();
+    return {scale.x, scale.y};
+}
+
+std::pair<float, float> Sprite::GetOrigin() const
+{
+    const auto& origin = m_sprite->getOrigin();
+    return {origin.x, origin.y};
+}
+
+std::tuple<float, float, float, float> Sprite::GetLocalBounds() const
+{
+    const auto& bounds = m_sprite->getLocalBounds();
+    return {bounds.left, bounds.top, bounds.width, bounds.height};
+}
+
+std::tuple<float, float, float, float> Sprite::GetGlobalBounds() const
+{
+    const auto& bounds = m_sprite->getGlobalBounds();
+    return {bounds.left, bounds.top, bounds.width, bounds.height};
+}
+
+void Sprite::SetImage(const Image& image)
+{
+    m_image = &image;
+    m_texture->loadFromImage(image.GetSFMLImage());
+    m_sprite->setTexture(*m_texture, true);
+}
+
+const sf::Sprite& Sprite::GetSFMLSprite() const
+{
+    return *m_sprite;
+}
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\graphics\Sprite.h ===
+#pragma once
+
+#include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <memory>
+#include "Image.h"
+
+namespace ShoeEngine {
+namespace Graphics {
+
+/**
+ * @class Sprite
+ * @brief A wrapper class for handling 2D sprites in the engine
+ *
+ * This class provides functionality to create and manipulate 2D sprites,
+ * including position, rotation, scale, and texture management.
+ */
+class Sprite {
+public:
+    /**
+     * @brief Default constructor creating an empty sprite
+     */
+    Sprite();
+
+    /**
+     * @brief Constructor that creates a sprite from an Image
+     * @param image The source image to create the sprite from
+     */
+    explicit Sprite(const Image& image);
+
+    /**
+     * @brief Sets the sprite's position
+     * @param x X coordinate
+     * @param y Y coordinate
+     */
+    void SetPosition(float x, float y);
+
+    /**
+     * @brief Sets the sprite's rotation
+     * @param angle Rotation angle in degrees
+     */
+    void SetRotation(float angle);
+
+    /**
+     * @brief Sets the sprite's scale
+     * @param scaleX Scale factor on X axis
+     * @param scaleY Scale factor on Y axis
+     */
+    void SetScale(float scaleX, float scaleY);
+
+    /**
+     * @brief Moves the sprite by the given offset
+     * @param offsetX Movement along X axis
+     * @param offsetY Movement along Y axis
+     */
+    void Move(float offsetX, float offsetY);
+
+    /**
+     * @brief Sets the sprite's origin (rotation/scale center point)
+     * @param x X coordinate of the origin
+     * @param y Y coordinate of the origin
+     */
+    void SetOrigin(float x, float y);
+
+    /**
+     * @brief Gets the sprite's position
+     * @return Pair of x, y coordinates
+     */
+    std::pair<float, float> GetPosition() const;
+
+    /**
+     * @brief Gets the sprite's rotation
+     * @return Rotation angle in degrees
+     */
+    float GetRotation() const;
+
+    /**
+     * @brief Gets the sprite's scale
+     * @return Pair of x, y scale factors
+     */
+    std::pair<float, float> GetScale() const;
+
+    /**
+     * @brief Gets the sprite's origin
+     * @return Pair of x, y coordinates of the origin
+     */
+    std::pair<float, float> GetOrigin() const;
+
+    /**
+     * @brief Gets the sprite's local bounds
+     * @return Tuple of left, top, width, height
+     */
+    std::tuple<float, float, float, float> GetLocalBounds() const;
+
+    /**
+     * @brief Gets the sprite's global bounds (transformed by position/rotation/scale)
+     * @return Tuple of left, top, width, height
+     */
+    std::tuple<float, float, float, float> GetGlobalBounds() const;
+
+    /**
+     * @brief Sets a new image for the sprite
+     * @param image The new image to use
+     */
+    void SetImage(const Image& image);
+
+    /**
+     * @brief Get the underlying SFML sprite
+     * @return Reference to the internal SFML sprite
+     */
+    const sf::Sprite& GetSFMLSprite() const;
+
+    /**
+     * @brief Get the image associated with this sprite
+     * @return Reference to the associated image
+     */
+    const Image& GetImage() const { return *m_image; }
+
+private:
+    std::unique_ptr<sf::Sprite> m_sprite; ///< Underlying SFML sprite
+    std::shared_ptr<sf::Texture> m_texture; ///< Texture used by the sprite
+    const Image* m_image; ///< Reference to the source image
+};
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\graphics\SpriteManager.cpp ===
+#include "SpriteManager.h"
+#include "core/Hash.h"
+#include <stdexcept>
+
+namespace ShoeEngine {
+namespace Graphics {
+
+SpriteManager::SpriteManager(Core::DataManager& dataManager, ImageManager& imageManager)
+    : Core::BaseManager(dataManager)
+    , m_imageManager(imageManager)
+{
+    // Register the type string using the base class's protected member
+    m_dataManager.RegisterString("sprites");
+}
+
+bool SpriteManager::CreateFromJson(const nlohmann::json& jsonData) {
+    try {
+        for (const auto& [spriteId, spriteData] : jsonData.items()) {
+            // Get the image ID for the sprite
+            std::string imageId = spriteData.at("image").get<std::string>();
+            
+            // Register the sprite and image IDs
+            m_dataManager.RegisterString(spriteId);
+            m_dataManager.RegisterString(imageId);
+            
+            // Create hash from image ID
+            Core::Hash::HashValue imageHash(imageId.c_str(), static_cast<uint32_t>(imageId.length()));
+            
+            // Get the image from the ImageManager
+            const Image* image = m_imageManager.GetImage(imageHash);
+            if (!image) {
+                throw std::runtime_error("Image not found: " + imageId);
+            }
+            
+            // Create a new sprite with the image
+            auto sprite = std::make_unique<Sprite>(*image);
+            
+            // Set position if specified
+            if (spriteData.contains("position")) {
+                const auto& position = spriteData["position"];
+                sprite->SetPosition(
+                    position.at("x").get<float>(),
+                    position.at("y").get<float>()
+                );
+            }
+            
+            // Set rotation if specified
+            if (spriteData.contains("rotation")) {
+                sprite->SetRotation(spriteData["rotation"].get<float>());
+            }
+            
+            // Set scale if specified
+            if (spriteData.contains("scale")) {
+                const auto& scale = spriteData["scale"];
+                sprite->SetScale(
+                    scale.at("x").get<float>(),
+                    scale.at("y").get<float>()
+                );
+            }
+            
+            // Add the sprite to our map
+            Core::Hash::HashValue spriteHash(spriteId.c_str(), static_cast<uint32_t>(spriteId.length()));
+            m_sprites[spriteHash] = std::move(sprite);
+        }
+        
+        return true;
+    }
+    catch (const std::exception&) {
+        return false;
+    }
+}
+
+Core::Hash::HashValue SpriteManager::GetManagedType() const {
+    return "sprites"_h;
+}
+
+Sprite* SpriteManager::GetSprite(const Core::Hash::HashValue& name) {
+    auto it = m_sprites.find(name);
+    return it != m_sprites.end() ? it->second.get() : nullptr;
+}
+
+void SpriteManager::Clear() {
+    m_sprites.clear();
+}
+
+nlohmann::json SpriteManager::SerializeToJson() {
+    nlohmann::json spritesArray = nlohmann::json::array();
+    
+    for (const auto& [spriteId, sprite] : m_sprites) {
+        nlohmann::json spriteJson;
+        
+        // Get the image ID from the sprite's image
+        const Image& image = sprite->GetImage();
+        spriteJson["image"] = m_dataManager.GetString(image.GetId());
+        
+        // Get position
+        auto position = sprite->GetPosition();
+        spriteJson["position"] = {
+            {"x", position.first},
+            {"y", position.second}
+        };
+        
+        // Get rotation
+        spriteJson["rotation"] = sprite->GetRotation();
+        
+        // Get scale
+        auto scale = sprite->GetScale();
+        spriteJson["scale"] = {
+            {"x", scale.first},
+            {"y", scale.second}
+        };
+        
+        // Add sprite ID as name
+        spriteJson["name"] = m_dataManager.GetString(spriteId);
+        
+        spritesArray.push_back(spriteJson);
+    }
+    
+    return spritesArray;
+}
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\graphics\SpriteManager.h ===
+#pragma once
+
+#include "core/BaseManager.h"
+#include "graphics/Sprite.h"
+#include "graphics/ImageManager.h"
+#include "core/DataManager.h"
+#include <unordered_map>
+#include <memory>
+
+namespace ShoeEngine {
+namespace Graphics {
+
+/**
+ * @class SpriteManager
+ * @brief Manages creation and storage of Sprite objects from JSON data
+ *
+ * This class handles loading and managing Sprite objects, providing a centralized
+ * way to create and access sprites throughout the engine.
+ */
+class SpriteManager : public Core::BaseManager {
+public:
+    /**
+     * @brief Constructor taking references to required managers
+     * @param dataManager Reference to the DataManager for string registration
+     * @param imageManager Reference to the ImageManager for sprite creation
+     */
+    SpriteManager(Core::DataManager& dataManager, ImageManager& imageManager);
+
+    /**
+     * @brief Creates Sprite objects from JSON data
+     * @param jsonData JSON object containing sprite definitions
+     * @return bool True if all sprites were created successfully
+     */
+    bool CreateFromJson(const nlohmann::json& jsonData) override;
+
+    /**
+     * @brief Get the type of objects this manager handles
+     * @return Core::Hash::HashValue Hash of "sprites" as the managed type
+     */
+    Core::Hash::HashValue GetManagedType() const override;
+
+    /**
+     * @brief Gets a sprite by name
+     * @param name The name of the sprite to get
+     * @return Pointer to the sprite, or nullptr if not found
+     */
+    Sprite* GetSprite(const Core::Hash::HashValue& name);
+
+    /**
+     * @brief Clear all managed sprites
+     */
+    void Clear();
+
+    /**
+     * @brief Serialize all managed sprites to JSON
+     * @return nlohmann::json JSON array containing serialized data of all sprites
+     */
+    nlohmann::json SerializeToJson() override;
+
+private:
+    ImageManager& m_imageManager;
+    std::unordered_map<Core::Hash::HashValue, std::unique_ptr<Sprite>, Core::Hash::Hasher> m_sprites;
+};
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\graphics\Window.cpp ===
+#include "Window.h"
+
+namespace ShoeEngine {
+namespace Graphics {
+
+Window::Window(const std::string& title, unsigned int width, unsigned int height)
+    : m_window(sf::VideoMode(width, height), title)
+{
+}
+
+Window::~Window() {
+    if (m_window.isOpen()) {
+        m_window.close();
+    }
+}
+
+bool Window::IsOpen() const {
+    return m_window.isOpen();
+}
+
+void Window::Close() {
+    m_window.close();
+}
+
+bool Window::ProcessEvents() {
+    sf::Event event;
+    while (m_window.pollEvent(event)) {
+        if (event.type == sf::Event::Closed) {
+            m_window.close();
+            return false;
+        }
+    }
+    return true;
+}
+
+void Window::Display() {
+    m_window.display();
+}
+
+void Window::Clear() {
+    m_window.clear(sf::Color::Black);
+}
+
+sf::RenderWindow& Window::GetRenderWindow() {
+    return m_window;
+}
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\graphics\Window.h ===
+#pragma once
+
+#include <SFML/Graphics.hpp>
+#include <string>
+
+namespace ShoeEngine {
+namespace Graphics {
+
+/**
+ * @class Window
+ * @brief Manages the game window and its properties
+ *
+ * The Window class provides a wrapper around SFML's window management,
+ * handling window creation, events, and basic window operations.
+ * It follows the RAII pattern for resource management.
+ */
+class Window {
+public:
+    /**
+     * @brief Creates a window with the specified properties
+     * @param title The window title
+     * @param width The window width in pixels
+     * @param height The window height in pixels
+     */
+    Window(const std::string& title, unsigned int width, unsigned int height);
+
+    /**
+     * @brief Destructor ensures proper cleanup of window resources
+     */
+    ~Window();
+
+    /**
+     * @brief Checks if the window is currently open
+     * @return true if the window is open, false otherwise
+     */
+    bool IsOpen() const;
+
+    /**
+     * @brief Closes the window
+     */
+    void Close();
+
+    /**
+     * @brief Processes all pending window events
+     * @return true if the window should remain open, false if it should close
+     */
+    bool ProcessEvents();
+
+    /**
+     * @brief Displays the contents of the window
+     */
+    void Display();
+
+    /**
+     * @brief Clears the window with a black background
+     */
+    void Clear();
+
+    /**
+     * @brief Gets the underlying SFML window
+     * @return Reference to the SFML window
+     */
+    sf::RenderWindow& GetRenderWindow();
+
+private:
+    sf::RenderWindow m_window;  ///< The SFML window instance
+};
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\graphics\WindowManager.cpp ===
+#include "WindowManager.h"
+#include "../core/Hash.h"
+
+using namespace ShoeEngine::Core;
+
+namespace ShoeEngine {
+namespace Graphics {
+
+bool WindowManager::CreateFromJson(const nlohmann::json& jsonData) {
+    try {
+        for (const auto& [windowName, windowConfig] : jsonData.items()) {
+            // Handle both empty and non-empty JSON objects
+            const nlohmann::json& config = windowConfig.is_object() ? windowConfig : nlohmann::json::object();
+            
+            // Use value() with default values for optional fields
+            std::string title = config.value("title", "ShoeEngine Window");
+            unsigned int width = config.value<unsigned int>("width", 800);
+            unsigned int height = config.value<unsigned int>("height", 600);
+
+            m_windows.push_back(std::make_unique<Window>(title, width, height));
+        }
+        return true;
+    }
+    catch (const std::exception&) {
+        // Log error here when logging system is implemented
+        return false;
+    }
+}
+
+Hash::HashValue WindowManager::GetManagedType() const {
+    return "windows"_h;
+}
+
+bool WindowManager::ProcessEvents() {
+    bool anyWindowOpen = false;
+    for (auto& window : m_windows) {
+        if (window->IsOpen()) {
+            if (window->ProcessEvents()) {
+                anyWindowOpen = true;
+            }
+        }
+    }
+    return anyWindowOpen;
+}
+
+void WindowManager::ClearAll() {
+    for (auto& window : m_windows) {
+        if (window->IsOpen()) {
+            window->Clear();
+        }
+    }
+}
+
+void WindowManager::DisplayAll() {
+    for (auto& window : m_windows) {
+        if (window->IsOpen()) {
+            window->Display();
+        }
+    }
+}
+
+const std::vector<std::unique_ptr<Window>>& WindowManager::GetWindows() const {
+    return m_windows;
+}
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\graphics\WindowManager.h ===
+#pragma once
+
+#include "Window.h"
+#include "../core/BaseManager.h"
+#include "../core/Hash.h"
+#include <nlohmann/json.hpp>
+#include <memory>
+#include <vector>
+#include <string>
+
+namespace ShoeEngine {
+namespace Graphics {
+
+/**
+ * @class WindowManager
+ * @brief Manages creation and lifecycle of Window objects from JSON configuration
+ *
+ * The WindowManager class handles the creation of Window instances based on
+ * JSON configuration data. It inherits from BaseManager to integrate with
+ * the DataManager system.
+ */
+class WindowManager : public Core::BaseManager {
+public:
+    /**
+     * @brief Constructor
+     * @param dataManager Reference to the DataManager for string registration
+     */
+    explicit WindowManager(Core::DataManager& dataManager) 
+        : Core::BaseManager(dataManager) {}
+
+    /**
+     * @brief Destructor
+     */
+    ~WindowManager() override = default;
+
+    /**
+     * @brief Creates Window objects from JSON configuration
+     * @param jsonData JSON data containing window configurations
+     * @return bool True if windows were created successfully
+     */
+    bool CreateFromJson(const nlohmann::json& jsonData) override;
+
+    /**
+     * @brief Returns the type of objects this manager handles
+     * @return Core::Hash::HashValue Hash of "windows"
+     */
+    Core::Hash::HashValue GetManagedType() const override;
+
+    /**
+     * @brief Process events for all managed windows
+     * @return bool True if any windows are still open
+     */
+    bool ProcessEvents();
+
+    /**
+     * @brief Clear all managed windows
+     */
+    void ClearAll();
+
+    /**
+     * @brief Display all managed windows
+     */
+    void DisplayAll();
+
+    /**
+     * @brief Get all managed windows
+     * @return const std::vector<std::unique_ptr<Window>>& Reference to the windows vector
+     */
+    const std::vector<std::unique_ptr<Window>>& GetWindows() const;
+
+private:
+    std::vector<std::unique_ptr<Window>> m_windows;  ///< Collection of managed windows
+};
+
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\Input\Input.cpp ===
+#include "Input.h"
+
+namespace ShoeEngine {
+namespace Input {
+
+	bool Input::IsActive(Core::Hash::HashValue currentContext) const {
+		return currentContext == m_context;
+	}
+
+} // namespace Input
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\Input\Input.h ===
+#pragma once
+
+#include "core/Hash.h"
+#include <SFML/Window/Keyboard.hpp>
+#include <SFML/Window/Mouse.hpp>
+#include <functional>
+#include <unordered_map>
+
+namespace ShoeEngine {
+namespace Input {
+
+/**
+ * @class Input
+ * @brief Base class for all input types
+ */
+class Input {
+public:
+    /**
+     * @brief Enum defining the type of input
+     */
+    enum class Type {
+        Keyboard,
+        MouseButton,
+        MouseAxis
+    };
+
+    /**
+     * @brief Constructor for Input class
+     * @param type The type of input (keyboard, mouse button, or mouse axis)
+     */
+    explicit Input(Type type) : m_type(type) {}
+
+    /**
+     * @brief Virtual destructor
+     */
+    virtual ~Input() = default;
+
+    /**
+     * @brief Update the input state
+     */
+    virtual void Update() = 0;
+
+    /**
+     * @brief Get the type of input
+     * @return Type The input type
+     */
+    Type GetType() const { return m_type; }
+
+    /**
+     * @brief Check if the input is currently active
+     * @return bool True if the input is active, false otherwise
+     */
+    virtual bool IsActive(Core::Hash::HashValue currentContext) const;
+
+    /**
+     * @brief Get the name of the input
+     * @return HashValue The input's name
+     */
+    Core::Hash::HashValue GetName() const { return m_name; }
+
+    /**
+     * @brief Set the context for this input
+     * @param context The context hash value
+     */
+    void SetContext(Core::Hash::HashValue context) { m_context = context; }
+
+    /**
+     * @brief Get the current context
+     * @return HashValue The context hash value
+     */
+    Core::Hash::HashValue GetContext() const { return m_context; }
+
+protected:
+    Type m_type;
+    Core::Hash::HashValue m_name;
+    Core::Hash::HashValue m_context;
+};
+
+/**
+ * @class KeyboardInput
+ * @brief Handles keyboard input
+ */
+class KeyboardInput : public Input {
+public:
+    /**
+     * @brief Constructor for KeyboardInput
+     * @param name The name/identifier for this input
+     */
+    explicit KeyboardInput(Core::Hash::HashValue name) 
+        : Input(Type::Keyboard)
+        , m_key(sf::Keyboard::Unknown)
+    {
+        m_name = name;
+    }
+
+    /**
+     * @brief Set the keyboard key to monitor
+     * @param key The SFML keyboard key
+     */
+    void SetKey(sf::Keyboard::Key key) { m_key = key; }
+
+    /**
+     * @brief Get the current keyboard key
+     * @return Key The SFML keyboard key
+     */
+    sf::Keyboard::Key GetKey() const { return m_key; }
+
+    void Update() override;
+    bool IsActive() const override;
+
+private:
+    sf::Keyboard::Key m_key;
+};
+
+/**
+ * @class MouseButtonInput
+ * @brief Handles mouse button input
+ */
+class MouseButtonInput : public Input {
+public:
+    /**
+     * @brief Constructor for MouseButtonInput
+     * @param name The name/identifier for this input
+     */
+    explicit MouseButtonInput(Core::Hash::HashValue name)
+        : Input(Type::MouseButton)
+        , m_button(sf::Mouse::ButtonCount)
+    {
+        m_name = name;
+    }
+
+    /**
+     * @brief Set the mouse button to monitor
+     * @param button The SFML mouse button
+     */
+    void SetButton(sf::Mouse::Button button) { m_button = button; }
+
+    /**
+     * @brief Get the current mouse button
+     * @return Button The SFML mouse button
+     */
+    sf::Mouse::Button GetButton() const { return m_button; }
+
+    void Update() override;
+    bool IsActive() const override;
+
+private:
+    sf::Mouse::Button m_button;
+};
+
+/**
+ * @class MouseAxisInput
+ * @brief Handles mouse axis input
+ */
+class MouseAxisInput : public Input {
+public:
+    /**
+     * @brief Constructor for MouseAxisInput
+     * @param name The name/identifier for this input
+     * @param isXAxis True if monitoring X axis, false for Y axis
+     */
+    MouseAxisInput(Core::Hash::HashValue name, bool isXAxis)
+        : Input(Type::MouseAxis)
+        , m_isXAxis(isXAxis)
+    {
+        m_name = name;
+    }
+
+    /**
+     * @brief Check if monitoring X axis
+     * @return bool True if X axis, false if Y axis
+     */
+    bool IsXAxis() const { return m_isXAxis; }
+
+    void Update() override;
+    bool IsActive() const override;
+
+private:
+    bool m_isXAxis;
+};
+
+} // namespace Input
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\Input\InputManager.cpp ===
+#include "InputManager.h"
+#include <iostream>
+
+namespace ShoeEngine {
+namespace Input {
+
+InputManager::InputManager(Core::DataManager& dataManager)
+    : Core::BaseManager(dataManager)
+{
+}
+
+bool InputManager::CreateFromJson(const nlohmann::json& jsonData) {
+    try {
+        if (!jsonData.is_array()) {
+            std::cerr << "Invalid input configuration: expected array of inputs\n";
+            return false;
+        }
+
+        for (const auto& inputData : jsonData) {
+            if (!CreateInput(inputData)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    catch (const nlohmann::json::exception& e) {
+        std::cerr << "JSON parsing error: " << e.what() << "\n";
+        return false;
+    }
+}
+
+bool InputManager::CreateInput(const nlohmann::json& inputData) {
+    try {
+        if (!inputData.contains("name") || !inputData.contains("type")) {
+            std::cerr << "Invalid input data: missing required fields\n";
+            return false;
+        }
+
+        std::string name = inputData["name"];
+        std::string typeStr = inputData["type"];
+        Input::Type type;
+
+        if (typeStr == "keyboard") {
+            type = Input::Type::Keyboard;
+        }
+        else if (typeStr == "mouseButton") {
+            type = Input::Type::MouseButton;
+        }
+        else if (typeStr == "mouseAxis") {
+            type = Input::Type::MouseAxis;
+        }
+        else {
+            std::cerr << "Invalid input type: " << typeStr << "\n";
+            return false;
+        }
+
+        // Create hash from name
+        Core::Hash::HashValue nameHash(name.c_str(), static_cast<uint32_t>(name.length()));
+
+        // Register the name with DataManager
+        m_dataManager.RegisterString(name);
+
+        std::unique_ptr<Input> input;
+
+        switch (type) {
+            case Input::Type::Keyboard: {
+                if (!inputData.contains("key")) {
+                    std::cerr << "Invalid keyboard input: missing key\n";
+                    return false;
+                }
+                std::string key = inputData["key"];
+                auto keyInput = std::make_unique<KeyboardInput>(nameHash);
+                keyInput->SetKey(ParseKey(key));
+                input = std::move(keyInput);
+                break;
+            }
+            case Input::Type::MouseButton: {
+                if (!inputData.contains("button")) {
+                    std::cerr << "Invalid mouse button input: missing button\n";
+                    return false;
+                }
+                int button = inputData["button"];
+                auto buttonInput = std::make_unique<MouseButtonInput>(nameHash);
+                buttonInput->SetButton(static_cast<sf::Mouse::Button>(button));
+                input = std::move(buttonInput);
+                break;
+            }
+            case Input::Type::MouseAxis: {
+                if (!inputData.contains("axis")) {
+                    std::cerr << "Invalid mouse axis input: missing axis\n";
+                    return false;
+                }
+                std::string axis = inputData["axis"];
+                auto axisInput = std::make_unique<MouseAxisInput>(nameHash, axis == "x");
+                input = std::move(axisInput);
+                break;
+            }
+        }
+
+        m_inputs[nameHash] = std::move(input);
+        return true;
+    }
+    catch (const nlohmann::json::exception& e) {
+        std::cerr << "JSON parsing error: " << e.what() << "\n";
+        return false;
+    }
+}
+
+sf::Keyboard::Key InputManager::ParseKey(const std::string& key) {
+    if (key == "left") return sf::Keyboard::Left;
+    if (key == "right") return sf::Keyboard::Right;
+    if (key == "up") return sf::Keyboard::Up;
+    if (key == "down") return sf::Keyboard::Down;
+    if (key == "space") return sf::Keyboard::Space;
+    if (key == "escape") return sf::Keyboard::Escape;
+    return sf::Keyboard::Unknown;
+}
+
+void InputManager::Update() {
+    for (auto& [name, input] : m_inputs) {
+        input->Update();
+    }
+}
+
+void InputManager::SetContext(const Core::Hash::HashValue& context) {
+    m_currentContext = context;
+}
+
+Input* InputManager::GetInput(const Core::Hash::HashValue& name) {
+    auto it = m_inputs.find(name);
+    return it != m_inputs.end() ? it->second.get() : nullptr;
+}
+
+} // namespace Input
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\Input\InputManager.h ===
+#pragma once
+
+#include "core/BaseManager.h"
+#include "core/Hash.h"
+#include "core/DataManager.h"
+#include "Input.h"
+#include <memory>
+#include <unordered_map>
+#include <vector>
+
+namespace ShoeEngine {
+namespace Input {
+
+/**
+ * @class InputManager
+ * @brief Manages input bindings and their associated actions
+ *
+ * This class handles the creation and management of Input objects from JSON data,
+ * allowing for dynamic input configuration and context-based input handling.
+ */
+class InputManager : public Core::BaseManager {
+public:
+    /**
+     * @brief Constructor for InputManager
+     * @param dataManager Reference to the DataManager for string registration
+     */
+    explicit InputManager(Core::DataManager& dataManager);
+
+    /**
+     * @brief Create input bindings from JSON data
+     * @param jsonData The JSON data containing input definitions
+     * @return bool True if inputs were created successfully
+     */
+    bool CreateFromJson(const nlohmann::json& jsonData) override;
+
+    /**
+     * @brief Get the type of objects this manager handles
+     * @return Core::Hash::HashValue Returns hash of "inputs" as the managed type
+     */
+    Core::Hash::HashValue GetManagedType() const override { return "inputs"_h; }
+
+    /**
+     * @brief Update all input states
+     */
+    void Update();
+
+    /**
+     * @brief Set the current input context
+     * @param context The context identifier hash
+     */
+    void SetContext(const Core::Hash::HashValue& context);
+
+    /**
+     * @brief Get an input by its name
+     * @param name The name hash of the input to retrieve
+     * @return Input* Pointer to the input if found, nullptr otherwise
+     */
+    Input* GetInput(const Core::Hash::HashValue& name);
+
+private:
+    /**
+     * @brief Create a single input from JSON data
+     * @param inputData The JSON data for a single input
+     * @return bool True if the input was created successfully
+     */
+    bool CreateInput(const nlohmann::json& inputData);
+
+    /**
+     * @brief Parse a string key into an SFML keyboard key
+     * @param key The key string
+     * @return Key The SFML keyboard key
+     */
+    sf::Keyboard::Key ParseKey(const std::string& key);
+
+    std::unordered_map<Core::Hash::HashValue, std::unique_ptr<Input>> m_inputs;
+    Core::Hash::HashValue m_currentContext;
+};
+
+} // namespace Input
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\Input\KeyboardInput.cpp ===
+#include "Input/Input.h"
+#include <SFML/Window/Keyboard.hpp>
+
+namespace ShoeEngine {
+namespace Input {
+
+void KeyboardInput::Update() {
+    // Nothing to update for keyboard input
+}
+
+bool KeyboardInput::IsActive() const {
+    return Input::IsActive() && sf::Keyboard::isKeyPressed(m_key);
+}
+
+} // namespace Input
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\Input\MouseAxisInput.cpp ===
+#include "Input.h"
+#include <SFML/Window/Mouse.hpp>
+
+namespace ShoeEngine {
+namespace Input {
+
+void MouseAxisInput::Update() {
+    // Update mouse axis state
+}
+
+bool MouseAxisInput::IsActive() const {
+    // For mouse axis, we consider it "active" if there's any movement
+    sf::Vector2i mousePos = sf::Mouse::getPosition();
+    static sf::Vector2i lastPos = mousePos;
+    
+    bool active = m_isXAxis ? (mousePos.x != lastPos.x) : (mousePos.y != lastPos.y);
+    lastPos = mousePos;
+    return active;
+}
+
+} // namespace Input
+} // namespace ShoeEngine
+
+
+=== FILE: .\src\Input\MouseButtonInput.cpp ===
+#include "Input/Input.h"
+#include <SFML/Window/Mouse.hpp>
+
+namespace ShoeEngine {
+namespace Input {
+
+void MouseButtonInput::Update() {
+    // Nothing to update for mouse button input
+}
+
+bool MouseButtonInput::IsActive() const {
+    return sf::Mouse::isButtonPressed(m_button);
+}
+
+} // namespace Input
+} // namespace ShoeEngine
+
+
+=== FILE: .\tests\core\DataManagerTests.cpp ===
+#include <gtest/gtest.h>
+#include "../../src/core/DataManager.h"
+#include "../../src/core/Hash.h"
+#include <memory>
+
+using namespace ShoeEngine::Core;
+
+// Mock manager for testing
+class MockManager : public BaseManager {
+public:
+    MockManager(DataManager& dataManager, Hash::HashValue type) 
+        : BaseManager(dataManager)
+        , m_type(type) {}
+
+    bool CreateFromJson(const nlohmann::json& jsonData) override {
+        m_lastData = jsonData;
+        return true;
+    }
+    Hash::HashValue GetManagedType() const override { return m_type; }
+    nlohmann::json GetLastData() const { return m_lastData; }
+
+private:
+    Hash::HashValue m_type;
+    nlohmann::json m_lastData;
+};
+
+class DataManagerTest : public ::testing::Test {
+protected:
+    DataManager dataManager;
+};
+
+TEST_F(DataManagerTest, RegisterManager) {
+    auto manager = std::make_unique<MockManager>(dataManager, "test_type"_h);
+    EXPECT_TRUE(dataManager.RegisterManager(std::move(manager)));
+}
+
+TEST_F(DataManagerTest, RegisterDuplicateManager) {
+    auto manager1 = std::make_unique<MockManager>(dataManager, "test_type"_h);
+    auto manager2 = std::make_unique<MockManager>(dataManager, "test_type"_h);
+    
+    EXPECT_TRUE(dataManager.RegisterManager(std::move(manager1)));
+    EXPECT_FALSE(dataManager.RegisterManager(std::move(manager2)));
+}
+
+TEST_F(DataManagerTest, ProcessValidData) {
+    auto manager = std::make_unique<MockManager>(dataManager, "test_type"_h);
+    dataManager.RegisterManager(std::move(manager));
+
+    nlohmann::json testData = {
+        {"test_type", {{"key", "value"}}}
+    };
+
+    EXPECT_TRUE(dataManager.ProcessData(testData));
+}
+
+TEST_F(DataManagerTest, ProcessInvalidData) {
+    auto manager = std::make_unique<MockManager>(dataManager, "test_type"_h);
+    dataManager.RegisterManager(std::move(manager));
+
+    nlohmann::json testData = {
+        {"invalid_type", {{"key", "value"}}}
+    };
+
+    EXPECT_FALSE(dataManager.ProcessData(testData));
+}
+
+TEST_F(DataManagerTest, RegisterString) {
+    std::string testString = "test_string";
+    auto hash = dataManager.RegisterString(testString);
+    EXPECT_EQ(dataManager.GetString(hash), testString);
+}
+
+TEST_F(DataManagerTest, GetNonexistentString) {
+    Hash::HashValue hash("nonexistent"_h);
+    EXPECT_TRUE(dataManager.GetString(hash).empty());
+}
+
+TEST_F(DataManagerTest, RegisterMultipleStrings) {
+    std::string str1 = "string1";
+    std::string str2 = "string2";
+    
+    auto hash1 = dataManager.RegisterString(str1);
+    auto hash2 = dataManager.RegisterString(str2);
+    
+    EXPECT_EQ(dataManager.GetString(hash1), str1);
+    EXPECT_EQ(dataManager.GetString(hash2), str2);
+}
+
+TEST_F(DataManagerTest, RegisterDuplicateString) {
+    std::string testString = "test_string";
+    auto hash1 = dataManager.RegisterString(testString);
+    auto hash2 = dataManager.RegisterString(testString);
+    
+    EXPECT_EQ(hash1, hash2);
+    EXPECT_EQ(dataManager.GetString(hash1), testString);
+}
+
+
+=== FILE: .\tests\core\HashTests.cpp ===
+#include "gtest/gtest.h"
+#include "core/Hash.h"
+
+using namespace ShoeEngine::Core;
+
+TEST(HashTests, MurmurHash3_ConsistentResults)
+{
+    const char* testString = "test string";
+    auto hash1 = Hash::MurmurHash3(testString, strlen(testString));
+    auto hash2 = Hash::MurmurHash3(testString, strlen(testString));
+    EXPECT_EQ(hash1, hash2);
+}
+
+TEST(HashTests, FNV1a_ConsistentResults)
+{
+    const char* testString = "test string";
+    auto hash1 = Hash::FNV1a(testString, strlen(testString));
+    auto hash2 = Hash::FNV1a(testString, strlen(testString));
+    EXPECT_EQ(hash1, hash2);
+}
+
+TEST(HashTests, Universal_ConsistentResults)
+{
+    const char* testString = "test string";
+    auto hash1 = Hash::Universal(testString);
+    auto hash2 = Hash::Universal(testString);
+    EXPECT_EQ(hash1, hash2);
+}
+
+TEST(HashTests, HashValue_Comparison)
+{
+    Hash::HashValue hash1("test", 4);
+    Hash::HashValue hash2("test", 4);
+    EXPECT_EQ(hash1, hash2);
+}
+
+TEST(HashTests, HashValue_StringLiteral)
+{
+    auto hash1 = "test"_h;
+    Hash::HashValue hash2("test", 4);
+    EXPECT_EQ(hash1, hash2);
+}
+
+
+=== FILE: .\tests\graphics\ImageManagerTests.cpp ===
+#include <gtest/gtest.h>
+#include "graphics/ImageManager.h"
+#include "core/Hash.h"
+#include <nlohmann/json.hpp>
+#include <fstream>
+#include "core/DataManager.h"
+
+using namespace ShoeEngine::Graphics;
+using namespace ShoeEngine::Core;
+using json = nlohmann::json;
+
+class ImageManagerTests : public ::testing::Test {
+protected:
+    ImageManagerTests() : manager(dataManager) {}
+
+    void SetUp() override {
+        // Create a test image file
+        std::vector<uint8_t> pixels(4 * 4 * 4, 255); // 4x4 white image
+        testImage.reset(new Image(pixels.data(), 4, 4));
+        testImage->SaveToFile("test_image.png");
+        
+        // Create test JSON
+        testJson = {
+            {"test_image", {
+                {"file", "test_image.png"}
+            }}
+        };
+    }
+
+    void TearDown() override {
+        // Clean up test file
+        std::remove("test_image.png");
+    }
+
+    DataManager dataManager;
+    std::unique_ptr<Image> testImage;
+    json testJson;
+    ImageManager manager;
+};
+
+TEST_F(ImageManagerTests, GetManagedType) {
+    EXPECT_EQ(manager.GetManagedType(), "images"_h);
+}
+
+TEST_F(ImageManagerTests, CreateFromJson) {
+    EXPECT_TRUE(manager.CreateFromJson(testJson));
+    
+    const Image* image = manager.GetImage("test_image"_h);
+    ASSERT_NE(image, nullptr);
+    EXPECT_EQ(image->GetWidth(), 4);
+    EXPECT_EQ(image->GetHeight(), 4);
+}
+
+TEST_F(ImageManagerTests, GetNonexistentImage) {
+    EXPECT_EQ(manager.GetImage("nonexistent"_h), nullptr);
+}
+
+TEST_F(ImageManagerTests, Clear) {
+    EXPECT_TRUE(manager.CreateFromJson(testJson));
+    EXPECT_NE(manager.GetImage("test_image"_h), nullptr);
+    
+    manager.Clear();
+    EXPECT_EQ(manager.GetImage("test_image"_h), nullptr);
+}
+
+
+=== FILE: .\tests\graphics\ImageTests.cpp ===
+#include <gtest/gtest.h>
+#include "graphics/Image.h"
+#include <vector>
+
+using namespace ShoeEngine::Graphics;
+
+class ImageTests : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Create a small test image with red pixels
+        testPixels = std::vector<uint8_t>(4 * 4 * 4, 0); // 4x4 image, 4 channels (RGBA)
+        for (size_t i = 0; i < testPixels.size(); i += 4) {
+            testPixels[i] = 255;     // R
+            testPixels[i + 1] = 0;   // G
+            testPixels[i + 2] = 0;   // B
+            testPixels[i + 3] = 255; // A
+        }
+    }
+
+    std::vector<uint8_t> testPixels;
+};
+
+TEST_F(ImageTests, DefaultConstructor) {
+    Image img;
+    EXPECT_EQ(img.GetWidth(), 0);
+    EXPECT_EQ(img.GetHeight(), 0);
+}
+
+TEST_F(ImageTests, ConstructFromPixels) {
+    Image img(testPixels.data(), 4, 4);
+    EXPECT_EQ(img.GetWidth(), 4);
+    EXPECT_EQ(img.GetHeight(), 4);
+    
+    const uint8_t* pixels = img.GetPixels();
+    ASSERT_NE(pixels, nullptr);
+    // Check first pixel is red
+    EXPECT_EQ(pixels[0], 255); // R
+    EXPECT_EQ(pixels[1], 0);   // G
+    EXPECT_EQ(pixels[2], 0);   // B
+    EXPECT_EQ(pixels[3], 255); // A
+}
+
+TEST_F(ImageTests, InvalidConstructionThrows) {
+    EXPECT_THROW(Image(nullptr, 4, 4), std::invalid_argument);
+    EXPECT_THROW(Image(testPixels.data(), 0, 4), std::invalid_argument);
+    EXPECT_THROW(Image(testPixels.data(), 4, 0), std::invalid_argument);
+}
+
+TEST_F(ImageTests, LoadInvalidFile) {
+    Image img;
+    EXPECT_FALSE(img.LoadFromFile("nonexistent.png"));
+}
+
+TEST_F(ImageTests, CloneImage) {
+    Image original(testPixels.data(), 4, 4);
+    Image clone = original.Clone();
+    
+    EXPECT_EQ(clone.GetWidth(), original.GetWidth());
+    EXPECT_EQ(clone.GetHeight(), original.GetHeight());
+    
+    const uint8_t* originalPixels = original.GetPixels();
+    const uint8_t* clonePixels = clone.GetPixels();
+    
+    // Compare first pixel
+    EXPECT_EQ(clonePixels[0], originalPixels[0]);
+    EXPECT_EQ(clonePixels[1], originalPixels[1]);
+    EXPECT_EQ(clonePixels[2], originalPixels[2]);
+    EXPECT_EQ(clonePixels[3], originalPixels[3]);
+}
+
+
+=== FILE: .\tests\graphics\SpriteManagerTests.cpp ===
+#include <gtest/gtest.h>
+#include "graphics/SpriteManager.h"
+#include "core/Hash.h"
+#include "core/DataManager.h"
+#include <nlohmann/json.hpp>
+#include <fstream>
+
+using namespace ShoeEngine::Graphics;
+using namespace ShoeEngine::Core;
+using json = nlohmann::json;
+
+class SpriteManagerTests : public ::testing::Test {
+protected:
+    SpriteManagerTests() 
+        : imageManager(dataManager)
+        , spriteManager(dataManager, imageManager)
+    {}
+
+    void SetUp() override {
+        // Create a test image file
+        std::vector<uint8_t> pixels(4 * 4 * 4, 255); // 4x4 white image
+        testImage.reset(new Image(pixels.data(), 4, 4));
+        testImage->SaveToFile("test_image.png");
+        
+        // Create test JSON for image
+        json imageJson = {
+            {"test_image", {
+                {"file", "test_image.png"}
+            }}
+        };
+        
+        // Load the image into the image manager
+        imageManager.CreateFromJson(imageJson);
+        
+        // Create test JSON for sprite
+        testJson = {
+            {"test_sprite", {
+                {"image", "test_image"},
+                {"position", {
+                    {"x", 100.0f},
+                    {"y", 200.0f}
+                }},
+                {"rotation", 45.0f},
+                {"scale", {
+                    {"x", 2.0f},
+                    {"y", 2.0f}
+                }},
+                {"origin", {
+                    {"x", 2.0f},
+                    {"y", 2.0f}
+                }}
+            }}
+        };
+    }
+
+    void TearDown() override {
+        // Clean up test file
+        std::remove("test_image.png");
+    }
+
+    DataManager dataManager;
+    std::unique_ptr<Image> testImage;
+    json testJson;
+    ImageManager imageManager;
+    SpriteManager spriteManager;
+};
+
+TEST_F(SpriteManagerTests, GetManagedType) {
+    EXPECT_EQ(spriteManager.GetManagedType(), "sprites"_h);
+}
+
+TEST_F(SpriteManagerTests, CreateFromJson) {
+    EXPECT_TRUE(spriteManager.CreateFromJson(testJson));
+    
+    const Sprite* sprite = spriteManager.GetSprite("test_sprite"_h);
+    ASSERT_NE(sprite, nullptr);
+    
+    auto position = sprite->GetPosition();
+    EXPECT_EQ(position.first, 100.0f);
+    EXPECT_EQ(position.second, 200.0f);
+    
+    EXPECT_EQ(sprite->GetRotation(), 45.0f);
+    
+    auto scale = sprite->GetScale();
+    EXPECT_EQ(scale.first, 2.0f);
+    EXPECT_EQ(scale.second, 2.0f);
+    
+    auto origin = sprite->GetOrigin();
+    EXPECT_EQ(origin.first, 2.0f);
+    EXPECT_EQ(origin.second, 2.0f);
+}
+
+TEST_F(SpriteManagerTests, CreateWithInvalidImage) {
+    json invalidJson = {
+        {"test_sprite", {
+            {"image", "nonexistent_image"},
+            {"position", {{"x", 0.0f}, {"y", 0.0f}}}
+        }}
+    };
+    
+    EXPECT_FALSE(spriteManager.CreateFromJson(invalidJson));
+}
+
+TEST_F(SpriteManagerTests, GetNonexistentSprite) {
+    EXPECT_EQ(spriteManager.GetSprite("nonexistent"_h), nullptr);
+}
+
+TEST_F(SpriteManagerTests, Clear) {
+    EXPECT_TRUE(spriteManager.CreateFromJson(testJson));
+    EXPECT_NE(spriteManager.GetSprite("test_sprite"_h), nullptr);
+    
+    spriteManager.Clear();
+    EXPECT_EQ(spriteManager.GetSprite("test_sprite"_h), nullptr);
+}
+
+TEST_F(SpriteManagerTests, SerializeEmptyManager) {
+    json serialized = spriteManager.SerializeToJson();
+    EXPECT_TRUE(serialized.empty());
+}
+
+TEST_F(SpriteManagerTests, SerializeAndDeserialize) {
+    // Create initial sprite
+    EXPECT_TRUE(spriteManager.CreateFromJson(testJson));
+    
+    // Serialize
+    json serialized = spriteManager.SerializeToJson();
+    
+    // Clear and verify
+    spriteManager.Clear();
+    EXPECT_EQ(spriteManager.GetSprite("test_sprite"_h), nullptr);
+    
+    // Deserialize
+    EXPECT_TRUE(spriteManager.CreateFromJson(serialized));
+    
+    // Verify sprite was restored correctly
+    const Sprite* sprite = spriteManager.GetSprite("test_sprite"_h);
+    ASSERT_NE(sprite, nullptr);
+    
+    auto position = sprite->GetPosition();
+    EXPECT_EQ(position.first, 100.0f);
+    EXPECT_EQ(position.second, 200.0f);
+    
+    EXPECT_EQ(sprite->GetRotation(), 45.0f);
+    
+    auto scale = sprite->GetScale();
+    EXPECT_EQ(scale.first, 2.0f);
+    EXPECT_EQ(scale.second, 2.0f);
+    
+    auto origin = sprite->GetOrigin();
+    EXPECT_EQ(origin.first, 2.0f);
+    EXPECT_EQ(origin.second, 2.0f);
+}
+
+TEST_F(SpriteManagerTests, SerializeMultipleSprites) {
+    // Create first sprite
+    EXPECT_TRUE(spriteManager.CreateFromJson(testJson));
+    
+    // Create second sprite
+    json secondSpriteJson = {
+        {"test_sprite2", {
+            {"image", "test_image"},
+            {"position", {
+                {"x", 300.0f},
+                {"y", 400.0f}
+            }},
+            {"rotation", 90.0f},
+            {"scale", {
+                {"x", 3.0f},
+                {"y", 3.0f}
+            }},
+            {"origin", {
+                {"x", 1.0f},
+                {"y", 1.0f}
+            }}
+        }}
+    };
+    
+    EXPECT_TRUE(spriteManager.CreateFromJson(secondSpriteJson));
+    
+    // Serialize both sprites
+    json serialized = spriteManager.SerializeToJson();
+    
+    // Clear and verify
+    spriteManager.Clear();
+    EXPECT_EQ(spriteManager.GetSprite("test_sprite"_h), nullptr);
+    EXPECT_EQ(spriteManager.GetSprite("test_sprite2"_h), nullptr);
+    
+    // Deserialize
+    EXPECT_TRUE(spriteManager.CreateFromJson(serialized));
+    
+    // Verify first sprite
+    const Sprite* sprite1 = spriteManager.GetSprite("test_sprite"_h);
+    ASSERT_NE(sprite1, nullptr);
+    
+    auto position1 = sprite1->GetPosition();
+    EXPECT_EQ(position1.first, 100.0f);
+    EXPECT_EQ(position1.second, 200.0f);
+    
+    // Verify second sprite
+    const Sprite* sprite2 = spriteManager.GetSprite("test_sprite2"_h);
+    ASSERT_NE(sprite2, nullptr);
+    
+    auto position2 = sprite2->GetPosition();
+    EXPECT_EQ(position2.first, 300.0f);
+    EXPECT_EQ(position2.second, 400.0f);
+}
+
+
+=== FILE: .\tests\graphics\SpriteTests.cpp ===
+#include <gtest/gtest.h>
+#include "graphics/Sprite.h"
+#include <vector>
+
+using namespace ShoeEngine::Graphics;
+
+class SpriteTests : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Create a small test image (2x2 red square)
+        testPixels = std::vector<uint8_t>(2 * 2 * 4, 0);
+        for (size_t i = 0; i < testPixels.size(); i += 4) {
+            testPixels[i] = 255;     // R
+            testPixels[i + 1] = 0;   // G
+            testPixels[i + 2] = 0;   // B
+            testPixels[i + 3] = 255; // A
+        }
+        testImage = Image(testPixels.data(), 2, 2);
+    }
+
+    std::vector<uint8_t> testPixels;
+    Image testImage;
+};
+
+TEST_F(SpriteTests, DefaultConstructor) {
+    Sprite sprite;
+    auto [x, y] = sprite.GetPosition();
+    EXPECT_FLOAT_EQ(x, 0.0f);
+    EXPECT_FLOAT_EQ(y, 0.0f);
+    EXPECT_FLOAT_EQ(sprite.GetRotation(), 0.0f);
+}
+
+TEST_F(SpriteTests, ConstructWithImage) {
+    Sprite sprite(testImage);
+    auto [left, top, width, height] = sprite.GetLocalBounds();
+    EXPECT_FLOAT_EQ(width, 2.0f);
+    EXPECT_FLOAT_EQ(height, 2.0f);
+}
+
+TEST_F(SpriteTests, SetPosition) {
+    Sprite sprite;
+    sprite.SetPosition(100.0f, 200.0f);
+    auto [x, y] = sprite.GetPosition();
+    EXPECT_FLOAT_EQ(x, 100.0f);
+    EXPECT_FLOAT_EQ(y, 200.0f);
+}
+
+TEST_F(SpriteTests, SetRotation) {
+    Sprite sprite;
+    sprite.SetRotation(45.0f);
+    EXPECT_FLOAT_EQ(sprite.GetRotation(), 45.0f);
+}
+
+TEST_F(SpriteTests, SetScale) {
+    Sprite sprite;
+    sprite.SetScale(2.0f, 3.0f);
+    auto [scaleX, scaleY] = sprite.GetScale();
+    EXPECT_FLOAT_EQ(scaleX, 2.0f);
+    EXPECT_FLOAT_EQ(scaleY, 3.0f);
+}
+
+TEST_F(SpriteTests, SetOrigin) {
+    Sprite sprite;
+    sprite.SetOrigin(10.0f, 20.0f);
+    auto [x, y] = sprite.GetOrigin();
+    EXPECT_FLOAT_EQ(x, 10.0f);
+    EXPECT_FLOAT_EQ(y, 20.0f);
+}
+
+TEST_F(SpriteTests, GlobalBounds) {
+    Sprite sprite(testImage);
+    sprite.SetPosition(100.0f, 100.0f);
+    sprite.SetScale(2.0f, 2.0f);
+    
+    auto [left, top, width, height] = sprite.GetGlobalBounds();
+    EXPECT_FLOAT_EQ(width, 4.0f);  // 2 * 2 (original width * scale)
+    EXPECT_FLOAT_EQ(height, 4.0f); // 2 * 2 (original height * scale)
+    EXPECT_FLOAT_EQ(left, 100.0f);
+    EXPECT_FLOAT_EQ(top, 100.0f);
+}
+
+
+=== FILE: .\tests\graphics\WindowManagerTests.cpp ===
+#include <gtest/gtest.h>
+#include "graphics/WindowManager.h"
+#include "core/Hash.h"
+#include <nlohmann/json.hpp>
+#include "core/DataManager.h"
+
+using namespace ShoeEngine::Graphics;
+using namespace ShoeEngine::Core;
+using json = nlohmann::json;
+
+class WindowManagerTests : public ::testing::Test {
+protected:
+    WindowManagerTests() : manager(dataManager) {}
+
+    DataManager dataManager;
+    WindowManager manager;
+};
+
+TEST_F(WindowManagerTests, GetManagedTypeReturnsWindows) {
+    EXPECT_EQ(manager.GetManagedType(), "windows"_h);
+}
+
+TEST_F(WindowManagerTests, CreateFromJsonWithValidData) {
+    json windowData = {
+        {"main_window", {
+            {"title", "Test Window"},
+            {"width", 800},
+            {"height", 600}
+        }}
+    };
+
+    EXPECT_TRUE(manager.CreateFromJson(windowData));
+    EXPECT_EQ(manager.GetWindows().size(), 1);
+}
+
+TEST_F(WindowManagerTests, CreateFromJsonWithMultipleWindows) {
+    json windowData = {
+        {"main_window", {
+            {"title", "Main Window"},
+            {"width", 800},
+            {"height", 600}
+        }},
+        {"debug_window", {
+            {"title", "Debug Window"},
+            {"width", 400},
+            {"height", 300}
+        }}
+    };
+
+    EXPECT_TRUE(manager.CreateFromJson(windowData));
+    EXPECT_EQ(manager.GetWindows().size(), 2);
+}
+
+TEST_F(WindowManagerTests, CreateFromJsonWithDefaultValues) {
+    json windowData = {
+        {"main_window", {
+            {"title", "Test Window"}
+        }}
+    };
+
+    EXPECT_TRUE(manager.CreateFromJson(windowData));
+    EXPECT_EQ(manager.GetWindows().size(), 1);
+}
+
+TEST_F(WindowManagerTests, CreateFromJsonWithInvalidData) {
+    json invalidData = {
+        {"main_window", {
+            {"invalid_field", "value"}
+        }}
+    };
+
+    EXPECT_FALSE(manager.CreateFromJson(invalidData));
+    EXPECT_EQ(manager.GetWindows().size(), 0);
+}
+
+
+=== FILE: .\tests\graphics\WindowTests.cpp ===
+#include <gtest/gtest.h>
+#include "graphics/Window.h"
+
+namespace ShoeEngine {
+namespace Graphics {
+namespace Tests {
+
+TEST(WindowTests, Constructor_CreatesOpenWindow) {
+    Window window("Test Window", 800, 600);
+    EXPECT_TRUE(window.IsOpen());
+}
+
+TEST(WindowTests, Close_ClosesWindow) {
+    Window window("Test Window", 800, 600);
+    window.Close();
+    EXPECT_FALSE(window.IsOpen());
+}
+
+TEST(WindowTests, GetRenderWindow_ReturnsValidWindow) {
+    Window window("Test Window", 800, 600);
+    sf::RenderWindow& renderWindow = window.GetRenderWindow();
+    EXPECT_TRUE(renderWindow.isOpen());
+}
+
+} // namespace Tests
+} // namespace Graphics
+} // namespace ShoeEngine
+
+
+=== FILE: .\tests\Input\InputTests.cpp ===
+#include <gtest/gtest.h>
+#include "input/Input.h"
+#include "input/InputManager.h"
+#include <nlohmann/json.hpp>
+#include "Core/DataManager.h"
+
+using namespace ShoeEngine::Input;
+
+class InputTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+    }
+};
+
+TEST_F(InputTest, CreateKeyboardInput) {
+    KeyboardInput input("jump"_h);
+    input.SetKey(sf::Keyboard::Space);
+    EXPECT_EQ(input.GetName(), "jump"_h);
+}
+
+TEST_F(InputTest, CreateMouseButtonInput) {
+    MouseButtonInput input("shoot"_h);
+    input.SetButton(sf::Mouse::Left);
+    EXPECT_EQ(input.GetName(), "shoot"_h);
+}
+
+TEST_F(InputTest, InputContext) {
+    KeyboardInput input("menu"_h);
+    input.SetContext("MainMenu"_h);
+    EXPECT_EQ(input.GetContext(), "MainMenu"_h);
+}
+
+class InputManagerTest : public ::testing::Test {
+protected:
+    ShoeEngine::Core::DataManager dataManager;
+    InputManager manager;
+    
+    InputManagerTest() : manager(dataManager) {}
+    
+    void SetUp() override {
+    }
+};
+
+TEST_F(InputManagerTest, CreateFromValidJson) {
+    nlohmann::json jsonData = {{
+        {"name", "jump"},
+        {"type", "keyboard"},
+        {"key", "space"},
+        {"context", "gameplay"}
+    }};
+    
+    EXPECT_TRUE(manager.CreateFromJson(jsonData));
+    EXPECT_NE(manager.GetInput("jump"_h), nullptr);
+}
+
+TEST_F(InputManagerTest, CreateFromInvalidJson) {
+    nlohmann::json jsonData = {{
+        {"type", "keyboard"} // Missing name
+    }};
+    
+    EXPECT_FALSE(manager.CreateFromJson(jsonData));
+}
+
+TEST_F(InputManagerTest, ContextHandling) {
+    nlohmann::json jsonData = {{
+        {"name", "menu"},
+        {"type", "keyboard"},
+        {"key", "escape"},
+        {"context", "gameplay"}
+    }};
+    
+    EXPECT_TRUE(manager.CreateFromJson(jsonData));
+    manager.SetContext("gameplay"_h);
+    auto input = manager.GetInput("menu"_h);
+    EXPECT_NE(input, nullptr);
+    EXPECT_EQ(input->GetContext(), "gameplay"_h);
+}
+

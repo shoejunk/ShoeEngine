@@ -110,9 +110,16 @@ public:
      */
     const sf::Sprite& GetSFMLSprite() const;
 
+    /**
+     * @brief Get the image associated with this sprite
+     * @return Reference to the associated image
+     */
+    const Image& GetImage() const { return *m_image; }
+
 private:
-    std::unique_ptr<sf::Sprite> m_sprite;     ///< Underlying SFML sprite
-    std::shared_ptr<sf::Texture> m_texture;   ///< Texture used by the sprite
+    std::unique_ptr<sf::Sprite> m_sprite; ///< Underlying SFML sprite
+    std::shared_ptr<sf::Texture> m_texture; ///< Texture used by the sprite
+    const Image* m_image; ///< Reference to the source image
 };
 
 } // namespace Graphics

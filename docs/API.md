@@ -177,7 +177,7 @@ Sets the origin point of the sprite for transformations.
 ### SpriteManager Class
 `ShoeEngine::Graphics::SpriteManager`
 
-The SpriteManager class manages the creation and storage of Sprite objects from JSON configuration data.
+The SpriteManager class manages the creation, storage, and serialization of Sprite objects from JSON configuration data.
 
 #### Methods
 
@@ -192,6 +192,11 @@ Retrieves a sprite by its ID.
 - **Parameters:**
   - `spriteId`: Unique identifier for the sprite
 - **Returns:** Pointer to the Sprite object, or nullptr if not found
+
+##### `nlohmann::json SerializeToJson() override`
+Serializes all managed sprites to JSON format.
+- **Returns:** JSON array containing serialized data of all sprites
+- **Note:** The serialized format matches the format expected by `CreateFromJson`
 
 #### JSON Configuration Format
 ```json
@@ -219,6 +224,28 @@ Retrieves a sprite by its ID.
             }
         }
     }
+}
+```
+
+#### JSON Serialization Format
+```json
+{
+    "objects": [
+        {
+            "type": "sprites",
+            "name": "sprite_name",
+            "image": "image_id",
+            "position": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "rotation": 0.0,
+            "scale": {
+                "x": 1.0,
+                "y": 1.0
+            }
+        }
+    ]
 }
 ```
 
@@ -306,9 +333,14 @@ Retrieves an input binding by name.
 ### BaseManager Class
 `ShoeEngine::Core::BaseManager`
 
-The BaseManager class serves as an abstract base class for all managers that handle object creation from JSON data. Specific managers (e.g., SpriteManager, TextureManager) should inherit from this class and implement its virtual methods.
+The BaseManager class serves as the base class for all managers that handle object creation and serialization.
 
-#### Virtual Methods
+#### Methods
+
+##### `virtual nlohmann::json SerializeToJson()`
+Serializes managed objects to JSON format.
+- **Returns:** JSON object containing serialized data of all managed objects
+- **Note:** Default implementation returns an empty JSON object. Derived classes should override this to implement their own serialization.
 
 ##### `virtual bool CreateFromJson(const nlohmann::json& jsonData) = 0`
 Pure virtual function that must be implemented by derived classes to handle object creation from JSON data.
@@ -345,6 +377,13 @@ Loads and processes JSON data from a file.
   - `filePath`: Path to the JSON file
 - **Returns:** `true` if loading and processing was successful
 
+##### `bool SaveToFile(const std::string& filePath)`
+Saves all managed objects to a JSON file.
+- **Parameters:**
+  - `filePath`: Path to save the JSON file
+- **Returns:** `true` if saving was successful
+- **Note:** Combines serialized data from all registered managers into a single JSON file
+
 ##### `bool ProcessData(const nlohmann::json& jsonData)`
 Processes JSON data directly, distributing it to registered managers.
 - **Parameters:**
@@ -372,3 +411,4 @@ The JSON data should be structured with top-level keys matching the managed type
         // Texture-specific data handled by TextureManager
     }
 }
+```

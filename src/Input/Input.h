@@ -7,93 +7,80 @@
 #include <unordered_map>
 
 namespace ShoeEngine {
-namespace Input {
+	namespace Input {
 
-/**
- * @class Input
- * @brief Represents a configurable input binding that can trigger actions
- *
- * This class handles both keyboard and mouse input, allowing for flexible
- * input configurations that can be loaded from JSON data.
- */
-class Input {
-public:
-    /**
-     * @brief Enum defining the type of input
-     */
-    enum class Type {
-        Keyboard,
-        MouseButton,
-        MouseAxis
-    };
+		class Input {
+		public:
+			enum class Type {
+				Keyboard,
+				MouseButton,
+				MouseAxis
+			};
 
-    /**
-     * @brief Constructor for Input class
-     * @param name The unique hash identifier for this input binding
-     * @param type The type of input (keyboard, mouse button, or mouse axis)
-     */
-    Input(const Core::Hash::HashValue& name, Type type);
+			explicit Input(Type type) : m_type(type) {}
+			virtual ~Input() = default;
 
-    /**
-     * @brief Set the keyboard key for this input
-     * @param key The SFML keyboard key
-     */
-    void SetKey(sf::Keyboard::Key key);
+			virtual void Update() = 0;
+			virtual bool IsActive() const = 0;
 
-    /**
-     * @brief Set the mouse button for this input
-     * @param button The SFML mouse button
-     */
-    void SetMouseButton(sf::Mouse::Button button);
+			Type GetType() const { return m_type; }
+			Core::Hash::HashValue GetName() const { return m_name; }
+			void SetContext(Core::Hash::HashValue context) { m_context = context; }
+			Core::Hash::HashValue GetContext() const { return m_context; }
 
-    /**
-     * @brief Set the action callback for this input
-     * @param callback The function to call when input is triggered
-     */
-    void SetCallback(std::function<void()> callback);
+		protected:
+			Type m_type;
+			Core::Hash::HashValue m_name;
+			Core::Hash::HashValue m_context;
+		};
 
-    /**
-     * @brief Get the name of this input binding
-     * @return The input binding's name hash
-     */
-    const Core::Hash::HashValue& GetName() const { return m_name; }
+		class KeyboardInput : public Input {
+		public:
+			explicit KeyboardInput(Core::Hash::HashValue name)
+				: Input(Type::Keyboard), m_key(sf::Keyboard::Unknown) {
+				m_name = name;
+			}
 
-    /**
-     * @brief Update the input state and trigger callbacks if necessary
-     */
-    void Update();
+			void SetKey(sf::Keyboard::Key key) { m_key = key; }
+			sf::Keyboard::Key GetKey() const { return m_key; }
+			void Update() override;
+			bool IsActive() const override;
 
-    /**
-     * @brief Set the context for this input
-     * @param context The context identifier hash
-     */
-    void SetContext(const Core::Hash::HashValue& context) { m_context = context; }
+		private:
+			sf::Keyboard::Key m_key;
+		};
 
-    /**
-     * @brief Get the current context
-     * @return The current context identifier hash
-     */
-    const Core::Hash::HashValue& GetContext() const { return m_context; }
+		class MouseButtonInput : public Input {
+		public:
+			explicit MouseButtonInput(Core::Hash::HashValue name)
+				: Input(Type::MouseButton), m_button(sf::Mouse::ButtonCount) {
+				m_name = name;
+			}
 
-    /**
-     * @brief Checks if this input is currently active (pressed)
-     * @return true if the input is active, false otherwise
-     */
-    bool IsActive() const;
+			void SetButton(sf::Mouse::Button button) { m_button = button; }
+			sf::Mouse::Button GetButton() const { return m_button; }
+			void Update() override;
+			bool IsActive() const override;
 
-private:
-    Core::Hash::HashValue m_name;
-    Type m_type;
-    Core::Hash::HashValue m_context;
-    std::function<void()> m_callback;
-    
-    union {
-        sf::Keyboard::Key m_key;
-        sf::Mouse::Button m_mouseButton;
-    };
+		private:
+			sf::Mouse::Button m_button;
+		};
 
-    bool m_wasPressed;
-};
+		class MouseAxisInput : public Input {
+		public:
+			MouseAxisInput(Core::Hash::HashValue name, bool isXAxis)
+				: Input(Type::MouseAxis), m_isXAxis(isXAxis) {
+				m_name = name;
+			}
 
-} // namespace Input
+			bool IsXAxis() const { return m_isXAxis; }
+			void Update() override;
+			bool IsActive() const override;
+
+		private:
+			bool m_isXAxis;
+			mutable sf::Vector2i m_lastMousePos;
+		};
+
+	} // namespace Input
 } // namespace ShoeEngine

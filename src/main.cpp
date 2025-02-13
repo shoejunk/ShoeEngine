@@ -51,10 +51,10 @@ int main() {
         ShoeEngine::Core::DataManager dataManager;
 
         // Create and register managers
-        auto windowManager = std::make_unique<ShoeEngine::Graphics::WindowManager>();
-        auto imageManager = std::make_unique<ShoeEngine::Graphics::ImageManager>();
-        auto spriteManager = std::make_unique<ShoeEngine::Graphics::SpriteManager>(*imageManager);
-        auto inputManager = std::make_unique<ShoeEngine::Input::InputManager>();
+        auto windowManager = std::make_unique<ShoeEngine::Graphics::WindowManager>(dataManager);
+        auto imageManager = std::make_unique<ShoeEngine::Graphics::ImageManager>(dataManager);
+        auto spriteManager = std::make_unique<ShoeEngine::Graphics::SpriteManager>(dataManager, *imageManager);
+        auto inputManager = std::make_unique<ShoeEngine::Input::InputManager>(dataManager);
 
         // Store raw pointers before moving
         auto* winManager = windowManager.get();
@@ -73,12 +73,14 @@ int main() {
             throw std::runtime_error("Failed to load game configuration");
         }
 
+		dataManager.LoadFromFile("data/autosave.json");
+
         if (!winManager || winManager->GetWindows().empty()) {
             throw std::runtime_error("No windows were created from configuration");
         }
 
         // Set initial context for input
-        inpManager->SetContext("gameplay"_h);
+        inpManager->PushContext("gameplay");
 
         // Debug: Print loaded inputs
         std::cout << "Loaded inputs:\n";
@@ -132,6 +134,8 @@ int main() {
 
             winManager->DisplayAll();
         }
+
+		dataManager.SaveToFile("data/autosave.json");
 
         return 0;
     }

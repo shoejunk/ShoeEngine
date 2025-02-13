@@ -6,6 +6,8 @@
 namespace ShoeEngine {
 namespace Core {
 
+class DataManager;  // Forward declaration
+
 /**
  * @class BaseManager
  * @brief Base class for all managers that handle object creation from JSON data
@@ -15,6 +17,12 @@ namespace Core {
  */
 class BaseManager {
 public:
+    /**
+     * @brief Constructor taking a reference to the DataManager
+     * @param dataManager Reference to the DataManager for string registration
+     */
+    explicit BaseManager(DataManager& dataManager) : m_dataManager(dataManager) {}
+
     /**
      * @brief Virtual destructor to ensure proper cleanup of derived classes
      */
@@ -32,6 +40,17 @@ public:
      * @return Hash::HashValue The type identifier for this manager
      */
     virtual Hash::HashValue GetManagedType() const = 0;
+
+    /**
+     * @brief Virtual function to serialize managed objects to JSON
+     * @return nlohmann::json JSON object containing serialized data of all managed objects
+     */
+    virtual nlohmann::json SerializeToJson() {
+        return nlohmann::json::array();
+    }
+
+protected:
+    DataManager& m_dataManager;  // Reference to the DataManager for string registration
 };
 
 } // namespace Core

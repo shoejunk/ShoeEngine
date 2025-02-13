@@ -1,0 +1,53 @@
+{
+    "inputs": {
+        "gameplay": [
+            {
+                "key": "W",
+                "name": "move_up",
+                "type": "keyboard"
+            },
+            {
+                "key": "A",
+                "name": "move_left",
+                "type": "keyboard"
+            },
+            {
+                "key": "D",
+                "name": "move_right",
+                "type": "keyboard"
+            },
+            {
+                "key": "S",
+                "name": "move_down",
+                "type": "keyboard"
+            }
+        ],
+        "global": [],
+        "menu": [
+            {
+                "key": "Left",
+                "name": "navigate_left",
+                "type": "keyboard"
+            },
+            {
+                "key": "Right",
+                "name": "navigate_right",
+                "type": "keyboard"
+            }
+        ]
+    },
+    "sprites": {
+        "player_sprite": {
+            "image": "",
+            "position": {
+                "x": 658.37109375,
+                "y": 74.69032287597656
+            },
+            "rotation": 0.0,
+            "scale": {
+                "x": 2.0,
+                "y": 2.0
+            }
+        }
+    }
+}

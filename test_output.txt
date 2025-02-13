@@ -1,0 +1,254 @@
+Running unit tests...
+Test project C:/dev/ShoeEngine/build
+      Start  1: InputTest.CreateKeyboardInput
+ 1/51 Test  #1: InputTest.CreateKeyboardInput ..........................   Passed    0.07 sec
+      Start  2: InputTest.CreateMouseButtonInput
+ 2/51 Test  #2: InputTest.CreateMouseButtonInput .......................   Passed    0.08 sec
+      Start  3: InputTest.InputContext
+ 3/51 Test  #3: InputTest.InputContext .................................   Passed    0.08 sec
+      Start  4: InputManagerTest.CreateFromValidJson
+ 4/51 Test  #4: InputManagerTest.CreateFromValidJson ...................   Passed    0.08 sec
+      Start  5: InputManagerTest.CreateFromInvalidJson
+ 5/51 Test  #5: InputManagerTest.CreateFromInvalidJson .................   Passed    0.07 sec
+      Start  6: InputManagerTest.ContextHandling
+ 6/51 Test  #6: InputManagerTest.ContextHandling .......................***Failed    0.08 sec
+Running main() from C:\dev\ShoeEngine\build\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = InputManagerTest.ContextHandling
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from InputManagerTest
+[ RUN      ] InputManagerTest.ContextHandling
+C:\dev\ShoeEngine\tests\Input\InputTests.cpp(76): error: Expected equality of these values:
+  input->GetContext()
+    Which is: 0
+  "gameplay"_h
+    Which is: 1469107020
+
+[  FAILED  ] InputManagerTest.ContextHandling (0 ms)
+[----------] 1 test from InputManagerTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] InputManagerTest.ContextHandling
+
+ 1 FAILED TEST
+
+      Start  7: DataManagerTest.RegisterManager
+ 7/51 Test  #7: DataManagerTest.RegisterManager ........................   Passed    0.07 sec
+      Start  8: DataManagerTest.RegisterDuplicateManager
+ 8/51 Test  #8: DataManagerTest.RegisterDuplicateManager ...............   Passed    0.08 sec
+      Start  9: DataManagerTest.ProcessValidData
+ 9/51 Test  #9: DataManagerTest.ProcessValidData .......................***Failed    0.08 sec
+Running main() from C:\dev\ShoeEngine\build\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DataManagerTest.ProcessValidData
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DataManagerTest
+[ RUN      ] DataManagerTest.ProcessValidData
+C:\dev\ShoeEngine\tests\core\DataManagerTests.cpp(53): error: Value of: dataManager.ProcessData(testData)
+  Actual: false
+Expected: true
+
+[  FAILED  ] DataManagerTest.ProcessValidData (0 ms)
+[----------] 1 test from DataManagerTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DataManagerTest.ProcessValidData
+
+ 1 FAILED TEST
+
+      Start 10: DataManagerTest.ProcessInvalidData
+10/51 Test #10: DataManagerTest.ProcessInvalidData .....................   Passed    0.07 sec
+      Start 11: DataManagerTest.RegisterString
+11/51 Test #11: DataManagerTest.RegisterString .........................   Passed    0.08 sec
+      Start 12: DataManagerTest.GetNonexistentString
+12/51 Test #12: DataManagerTest.GetNonexistentString ...................   Passed    0.08 sec
+      Start 13: DataManagerTest.RegisterMultipleStrings
+13/51 Test #13: DataManagerTest.RegisterMultipleStrings ................   Passed    0.07 sec
+      Start 14: DataManagerTest.RegisterDuplicateString
+14/51 Test #14: DataManagerTest.RegisterDuplicateString ................   Passed    0.08 sec
+      Start 15: HashTests.MurmurHash3_ConsistentResults
+15/51 Test #15: HashTests.MurmurHash3_ConsistentResults ................   Passed    0.07 sec
+      Start 16: HashTests.FNV1a_ConsistentResults
+16/51 Test #16: HashTests.FNV1a_ConsistentResults ......................   Passed    0.08 sec
+      Start 17: HashTests.Universal_ConsistentResults
+17/51 Test #17: HashTests.Universal_ConsistentResults ..................   Passed    0.08 sec
+      Start 18: HashTests.HashValue_Comparison
+18/51 Test #18: HashTests.HashValue_Comparison .........................   Passed    0.07 sec
+      Start 19: HashTests.HashValue_StringLiteral
+19/51 Test #19: HashTests.HashValue_StringLiteral ......................   Passed    0.08 sec
+      Start 20: ImageManagerTests.GetManagedType
+20/51 Test #20: ImageManagerTests.GetManagedType .......................   Passed    0.08 sec
+      Start 21: ImageManagerTests.CreateFromJson
+21/51 Test #21: ImageManagerTests.CreateFromJson .......................   Passed    0.20 sec
+      Start 22: ImageManagerTests.GetNonexistentImage
+22/51 Test #22: ImageManagerTests.GetNonexistentImage ..................   Passed    0.08 sec
+      Start 23: ImageManagerTests.Clear
+23/51 Test #23: ImageManagerTests.Clear ................................   Passed    0.08 sec
+      Start 24: ImageTests.DefaultConstructor
+24/51 Test #24: ImageTests.DefaultConstructor ..........................   Passed    0.08 sec
+      Start 25: ImageTests.ConstructFromPixels
+25/51 Test #25: ImageTests.ConstructFromPixels .........................   Passed    0.20 sec
+      Start 26: ImageTests.InvalidConstructionThrows
+26/51 Test #26: ImageTests.InvalidConstructionThrows ...................   Passed    0.09 sec
+      Start 27: ImageTests.LoadInvalidFile
+27/51 Test #27: ImageTests.LoadInvalidFile .............................   Passed    0.20 sec
+      Start 28: ImageTests.CloneImage
+28/51 Test #28: ImageTests.CloneImage ..................................   Passed    0.07 sec
+      Start 29: SpriteManagerTests.GetManagedType
+29/51 Test #29: SpriteManagerTests.GetManagedType ......................   Passed    0.20 sec
+      Start 30: SpriteManagerTests.CreateFromJson
+30/51 Test #30: SpriteManagerTests.CreateFromJson ......................***Failed    0.25 sec
+Running main() from C:\dev\ShoeEngine\build\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = SpriteManagerTests.CreateFromJson
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from SpriteManagerTests
+[ RUN      ] SpriteManagerTests.CreateFromJson
+C:\dev\ShoeEngine\tests\graphics\SpriteManagerTests.cpp(89): error: Expected equality of these values:
+  origin.first
+    Which is: 0
+  2.0f
+    Which is: 2
+
+C:\dev\ShoeEngine\tests\graphics\SpriteManagerTests.cpp(90): error: Expected equality of these values:
+  origin.second
+    Which is: 0
+  2.0f
+    Which is: 2
+
+[  FAILED  ] SpriteManagerTests.CreateFromJson (153 ms)
+[----------] 1 test from SpriteManagerTests (153 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (153 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SpriteManagerTests.CreateFromJson
+
+ 1 FAILED TEST
+
+      Start 31: SpriteManagerTests.CreateWithInvalidImage
+31/51 Test #31: SpriteManagerTests.CreateWithInvalidImage ..............   Passed    0.20 sec
+      Start 32: SpriteManagerTests.GetNonexistentSprite
+32/51 Test #32: SpriteManagerTests.GetNonexistentSprite ................   Passed    0.08 sec
+      Start 33: SpriteManagerTests.Clear
+33/51 Test #33: SpriteManagerTests.Clear ...............................   Passed    0.24 sec
+      Start 34: SpriteManagerTests.SerializeEmptyManager
+34/51 Test #34: SpriteManagerTests.SerializeEmptyManager ...............   Passed    0.08 sec
+      Start 35: SpriteManagerTests.SerializeAndDeserialize
+35/51 Test #35: SpriteManagerTests.SerializeAndDeserialize .............***Failed    0.29 sec
+Running main() from C:\dev\ShoeEngine\build\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = SpriteManagerTests.SerializeAndDeserialize
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from SpriteManagerTests
+[ RUN      ] SpriteManagerTests.SerializeAndDeserialize
+C:\dev\ShoeEngine\tests\graphics\SpriteManagerTests.cpp(137): error: Expected: (sprite) != (nullptr), actual: NULL vs (nullptr)
+
+[  FAILED  ] SpriteManagerTests.SerializeAndDeserialize (192 ms)
+[----------] 1 test from SpriteManagerTests (192 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (192 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SpriteManagerTests.SerializeAndDeserialize
+
+ 1 FAILED TEST
+
+      Start 36: SpriteManagerTests.SerializeMultipleSprites
+36/51 Test #36: SpriteManagerTests.SerializeMultipleSprites ............***Failed    0.28 sec
+Running main() from C:\dev\ShoeEngine\build\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = SpriteManagerTests.SerializeMultipleSprites
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from SpriteManagerTests
+[ RUN      ] SpriteManagerTests.SerializeMultipleSprites
+C:\dev\ShoeEngine\tests\graphics\SpriteManagerTests.cpp(193): error: Expected: (sprite1) != (nullptr), actual: NULL vs (nullptr)
+
+[  FAILED  ] SpriteManagerTests.SerializeMultipleSprites (181 ms)
+[----------] 1 test from SpriteManagerTests (181 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (182 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SpriteManagerTests.SerializeMultipleSprites
+
+ 1 FAILED TEST
+
+      Start 37: SpriteTests.DefaultConstructor
+37/51 Test #37: SpriteTests.DefaultConstructor .........................   Passed    0.23 sec
+      Start 38: SpriteTests.ConstructWithImage
+38/51 Test #38: SpriteTests.ConstructWithImage .........................   Passed    0.23 sec
+      Start 39: SpriteTests.SetPosition
+39/51 Test #39: SpriteTests.SetPosition ................................   Passed    0.35 sec
+      Start 40: SpriteTests.SetRotation
+40/51 Test #40: SpriteTests.SetRotation ................................   Passed    0.23 sec
+      Start 41: SpriteTests.SetScale
+41/51 Test #41: SpriteTests.SetScale ...................................   Passed    0.23 sec
+      Start 42: SpriteTests.SetOrigin
+42/51 Test #42: SpriteTests.SetOrigin ..................................   Passed    0.24 sec
+      Start 43: SpriteTests.GlobalBounds
+43/51 Test #43: SpriteTests.GlobalBounds ...............................   Passed    0.24 sec
+      Start 44: WindowManagerTests.GetManagedTypeReturnsWindows
+44/51 Test #44: WindowManagerTests.GetManagedTypeReturnsWindows ........   Passed    0.08 sec
+      Start 45: WindowManagerTests.CreateFromJsonWithValidData
+45/51 Test #45: WindowManagerTests.CreateFromJsonWithValidData .........   Passed    0.47 sec
+      Start 46: WindowManagerTests.CreateFromJsonWithMultipleWindows
+46/51 Test #46: WindowManagerTests.CreateFromJsonWithMultipleWindows ...   Passed    0.58 sec
+      Start 47: WindowManagerTests.CreateFromJsonWithDefaultValues
+47/51 Test #47: WindowManagerTests.CreateFromJsonWithDefaultValues .....   Passed    0.49 sec
+      Start 48: WindowManagerTests.CreateFromJsonWithInvalidData
+48/51 Test #48: WindowManagerTests.CreateFromJsonWithInvalidData .......***Failed    0.48 sec
+Running main() from C:\dev\ShoeEngine\build\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = WindowManagerTests.CreateFromJsonWithInvalidData
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from WindowManagerTests
+[ RUN      ] WindowManagerTests.CreateFromJsonWithInvalidData
+C:\dev\ShoeEngine\tests\graphics\WindowManagerTests.cpp(72): error: Value of: manager.CreateFromJson(invalidData)
+  Actual: true
+Expected: false
+
+C:\dev\ShoeEngine\tests\graphics\WindowManagerTests.cpp(73): error: Expected equality of these values:
+  manager.GetWindows().size()
+    Which is: 1
+  0
+
+[  FAILED  ] WindowManagerTests.CreateFromJsonWithInvalidData (368 ms)
+[----------] 1 test from WindowManagerTests (368 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (368 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WindowManagerTests.CreateFromJsonWithInvalidData
+
+ 1 FAILED TEST
+
+      Start 49: WindowTests.Constructor_CreatesOpenWindow
+49/51 Test #49: WindowTests.Constructor_CreatesOpenWindow ..............   Passed    0.47 sec
+      Start 50: WindowTests.Close_ClosesWindow
+50/51 Test #50: WindowTests.Close_ClosesWindow .........................   Passed    0.46 sec
+      Start 51: WindowTests.GetRenderWindow_ReturnsValidWindow
+51/51 Test #51: WindowTests.GetRenderWindow_ReturnsValidWindow .........   Passed    0.58 sec
+
+88% tests passed, 6 tests failed out of 51
+
+Total Test time (real) =   9.56 sec
+
+The following tests FAILED:
+	  6 - InputManagerTest.ContextHandling (Failed)
+	  9 - DataManagerTest.ProcessValidData (Failed)
+	 30 - SpriteManagerTests.CreateFromJson (Failed)
+	 35 - SpriteManagerTests.SerializeAndDeserialize (Failed)
+	 36 - SpriteManagerTests.SerializeMultipleSprites (Failed)
+	 48 - WindowManagerTests.CreateFromJsonWithInvalidData (Failed)
+Done!

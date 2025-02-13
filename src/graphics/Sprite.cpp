@@ -6,12 +6,14 @@ namespace Graphics {
 Sprite::Sprite()
     : m_sprite(std::make_unique<sf::Sprite>())
     , m_texture(std::make_shared<sf::Texture>())
+    , m_image(nullptr)
 {
 }
 
 Sprite::Sprite(const Image& image)
     : m_sprite(std::make_unique<sf::Sprite>())
     , m_texture(std::make_shared<sf::Texture>())
+    , m_image(&image)
 {
     SetImage(image);
 }
@@ -78,6 +80,7 @@ std::tuple<float, float, float, float> Sprite::GetGlobalBounds() const
 
 void Sprite::SetImage(const Image& image)
 {
+    m_image = &image;
     m_texture->loadFromImage(image.GetSFMLImage());
     m_sprite->setTexture(*m_texture, true);
 }

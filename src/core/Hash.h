@@ -183,6 +183,16 @@ public:
 } // namespace Core
 } // namespace ShoeEngine
 
+// Add std::hash specialization for HashValue
+namespace std {
+    template<>
+    struct hash<ShoeEngine::Core::Hash::HashValue> {
+        size_t operator()(const ShoeEngine::Core::Hash::HashValue& h) const {
+            return static_cast<size_t>(h.m_hash);
+        }
+    };
+}
+
 /**
  * @brief User-defined literal operator for creating a HashValue from a string literal.
  * @param key String literal

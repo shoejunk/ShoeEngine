@@ -21,7 +21,7 @@ bool WindowManager::CreateFromJson(const nlohmann::json& jsonData) {
         }
         return true;
     }
-    catch (const std::exception& e) {
+    catch (const std::exception&) {
         // Log error here when logging system is implemented
         return false;
     }

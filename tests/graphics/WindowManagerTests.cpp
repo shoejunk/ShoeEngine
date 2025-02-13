@@ -2,6 +2,7 @@
 #include "graphics/WindowManager.h"
 #include "core/Hash.h"
 #include <nlohmann/json.hpp>
+#include "core/DataManager.h"
 
 using namespace ShoeEngine::Graphics;
 using namespace ShoeEngine::Core;
@@ -9,6 +10,9 @@ using json = nlohmann::json;
 
 class WindowManagerTests : public ::testing::Test {
 protected:
+    WindowManagerTests() : manager(dataManager) {}
+
+    DataManager dataManager;
     WindowManager manager;
 };
 
@@ -49,7 +53,9 @@ TEST_F(WindowManagerTests, CreateFromJsonWithMultipleWindows) {
 
 TEST_F(WindowManagerTests, CreateFromJsonWithDefaultValues) {
     json windowData = {
-        {"minimal_window", {}}
+        {"main_window", {
+            {"title", "Test Window"}
+        }}
     };
 
     EXPECT_TRUE(manager.CreateFromJson(windowData));
@@ -58,9 +64,8 @@ TEST_F(WindowManagerTests, CreateFromJsonWithDefaultValues) {
 
 TEST_F(WindowManagerTests, CreateFromJsonWithInvalidData) {
     json invalidData = {
-        {"bad_window", {
-            {"width", "not_a_number"},
-            {"height", "also_not_a_number"}
+        {"main_window", {
+            {"invalid_field", "value"}
         }}
     };
 

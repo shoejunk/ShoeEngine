@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SFML/Graphics/Image.hpp>
+#include "core/Hash.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -83,8 +84,21 @@ public:
      */
     const sf::Image& GetSFMLImage() const;
 
+    /**
+     * @brief Sets the ID of the image
+     * @param id The ID to set
+     */
+    void SetId(const Core::Hash::HashValue& id) { m_id = id; }
+
+    /**
+     * @brief Gets the ID of the image
+     * @return The image's ID
+     */
+    Core::Hash::HashValue GetId() const { return m_id; }
+
 private:
     std::unique_ptr<sf::Image> m_image; ///< Underlying SFML image
+    Core::Hash::HashValue m_id; ///< Image identifier
 };
 
 } // namespace Graphics

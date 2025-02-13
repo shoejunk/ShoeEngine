@@ -23,8 +23,10 @@ class WindowManager : public Core::BaseManager {
 public:
     /**
      * @brief Constructor
+     * @param dataManager Reference to the DataManager for string registration
      */
-    WindowManager() = default;
+    explicit WindowManager(Core::DataManager& dataManager) 
+        : Core::BaseManager(dataManager) {}
 
     /**
      * @brief Destructor

@@ -19,9 +19,11 @@ namespace Graphics {
 class ImageManager : public Core::BaseManager {
 public:
     /**
-     * @brief Default constructor
+     * @brief Constructor
+     * @param dataManager Reference to the DataManager for string registration
      */
-    ImageManager() = default;
+    explicit ImageManager(Core::DataManager& dataManager) 
+        : Core::BaseManager(dataManager) {}
 
     /**
      * @brief Creates Image objects from JSON data

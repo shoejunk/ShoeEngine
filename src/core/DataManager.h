@@ -16,7 +16,8 @@ namespace Core {
  * @brief Central manager for loading and distributing JSON data to type-specific managers
  *
  * This class is responsible for reading JSON data files and distributing the data
- * to the appropriate managers based on object types.
+ * to the appropriate managers based on object types. It also maintains a registry
+ * of strings used by managers for serialization.
  */
 class DataManager {
 public:
@@ -52,14 +53,36 @@ public:
     bool ProcessData(const nlohmann::json& jsonData);
 
     /**
+     * @brief Save all managed objects to a JSON file
+     * @param filePath Path to save the JSON file
+     * @return bool True if saving was successful
+     */
+    bool SaveToFile(const std::string& filePath);
+
+    /**
      * @brief Get a registered manager by its type
      * @param type The type of manager to retrieve
      * @return BaseManager* Pointer to the manager, or nullptr if not found
      */
     BaseManager* GetManager(const Core::Hash::HashValue& type);
 
+    /**
+     * @brief Register a string with the DataManager and get its hash
+     * @param str The string to register
+     * @return HashValue The hash of the registered string
+     */
+    Hash::HashValue RegisterString(const std::string& str);
+
+    /**
+     * @brief Get the original string for a hash value
+     * @param hash The hash value to look up
+     * @return const std::string& The original string, or empty string if not found
+     */
+    const std::string& GetString(const Hash::HashValue& hash) const;
+
 private:
-    std::unordered_map<Core::Hash::HashValue, std::unique_ptr<BaseManager>, Core::Hash::Hasher> m_managers;
+    std::unordered_map<Hash::HashValue, std::unique_ptr<BaseManager>, Hash::Hasher> m_managers;
+    std::unordered_map<Hash::HashValue, std::string, Hash::Hasher> m_stringRegistry;
 };
 
 } // namespace Core
