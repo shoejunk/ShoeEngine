@@ -1,16 +1,23 @@
 #include "ImageManager.h"
+#include "core/DataManager.h"
 #include <stdexcept>
 #include <iostream>
 
 namespace ShoeEngine {
 namespace Graphics {
 
+ImageManager::ImageManager(Core::DataManager& dataManager)
+	: Core::BaseManager(dataManager) {
+	dataManager.RegisterString("images");
+}
+
 bool ImageManager::CreateFromJson(const nlohmann::json& jsonData) {
     try {
         for (const auto& [imageId, imageData] : jsonData.items()) {
             // Get the file path for the image
             std::string filePath = imageData.at("file").get<std::string>();
-            
+			Core::Hash::HashValue filePathHash = m_dataManager.RegisterString(filePath);
+
             // Create a new image
             auto image = std::make_unique<Image>();
             
@@ -21,7 +28,8 @@ bool ImageManager::CreateFromJson(const nlohmann::json& jsonData) {
             
             // Create hash from image ID
             Core::Hash::HashValue hashId(imageId.c_str(), static_cast<uint32_t>(imageId.length()));
-            
+			image->SetId(hashId);
+
             // Store the image
             m_images[hashId] = std::move(image);
         }
@@ -44,6 +52,24 @@ const Image* ImageManager::GetImage(const Core::Hash::HashValue& imageId) const 
 
 void ImageManager::Clear() {
     m_images.clear();
+}
+
+nlohmann::json ImageManager::SerializeToJson() {
+	nlohmann::json imagesObject = nlohmann::json::object();
+
+	// Iterate through all images
+	for (const auto& [imageHash, image] : m_images) {
+		nlohmann::json imageJson;
+		// Set the "file" property for each image. 
+		// This assumes that Image has a method GetFile() returning the file path.
+		imageJson["file"] = m_dataManager.GetString(image->GetFilePathHash());
+
+		// Get the original image ID string using the DataManager, which is used as the key.
+		std::string imageName = m_dataManager.GetString(imageHash);
+		imagesObject[imageName] = imageJson;
+	}
+
+	return imagesObject;
 }
 
 } // namespace Graphics

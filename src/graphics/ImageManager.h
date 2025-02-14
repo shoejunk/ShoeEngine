@@ -22,8 +22,7 @@ public:
      * @brief Constructor
      * @param dataManager Reference to the DataManager for string registration
      */
-    explicit ImageManager(Core::DataManager& dataManager) 
-        : Core::BaseManager(dataManager) {}
+	explicit ImageManager(Core::DataManager& dataManager);
 
     /**
      * @brief Creates Image objects from JSON data
@@ -49,6 +48,12 @@ public:
      * @brief Clear all managed images
      */
     void Clear();
+
+	/**
+	 * @brief Serialize all managed images to JSON
+	 * @return nlohmann::json JSON array containing serialized data of all images
+	 */
+	nlohmann::json SerializeToJson() override;
 
 private:
     std::unordered_map<Core::Hash::HashValue, std::unique_ptr<Image>, Core::Hash::Hasher> m_images;

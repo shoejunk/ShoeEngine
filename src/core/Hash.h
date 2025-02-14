@@ -141,12 +141,15 @@ public:
         {
         }
 
-        // Originally constexpr: calls FNV1a, which may cause issues on some compilers
-        // if FNV1a is not truly constexpr. We'll keep it as it was.
         constexpr HashValue(const char* key, uint32_t len)
             : m_hash(FNV1a(key, len))
         {
         }
+
+		HashValue(const std::string& key)
+			: m_hash(FNV1a(key.c_str(), static_cast<uint32_t>(key.size())))
+		{
+		}
 
         // Conversion operator to uint32_t
         constexpr operator uint32_t() const { return m_hash; }

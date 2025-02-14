@@ -96,9 +96,16 @@ public:
      */
     Core::Hash::HashValue GetId() const { return m_id; }
 
+	/**
+	 * @brief Gets the hash of the file path of the image
+	 * @return The hash of the file path of the image
+	 */
+	Core::Hash::HashValue GetFilePathHash() const { return m_filePathHash; }
+
 private:
     std::unique_ptr<sf::Image> m_image; ///< Underlying SFML image
     Core::Hash::HashValue m_id; ///< Image identifier
+	Core::Hash::HashValue m_filePathHash; ///< File path hash of the image
 };
 
 } // namespace Graphics

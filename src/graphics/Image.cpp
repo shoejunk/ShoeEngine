@@ -1,4 +1,5 @@
 #include "Image.h"
+#include "core/Hash.h"
 #include <stdexcept>
 
 namespace ShoeEngine {
@@ -12,6 +13,7 @@ Image::Image()
 Image::Image(const std::string& filePath)
     : m_image(std::make_unique<sf::Image>())
 {
+	m_filePathHash = Core::Hash::HashValue(filePath);
     if (!LoadFromFile(filePath)) {
         throw std::runtime_error("Failed to load image from file: " + filePath);
     }
@@ -28,7 +30,8 @@ Image::Image(const uint8_t* pixels, unsigned int width, unsigned int height)
 
 bool Image::LoadFromFile(const std::string& filePath)
 {
-    return m_image->loadFromFile(filePath);
+	m_filePathHash = Core::Hash::HashValue(filePath);
+	return m_image->loadFromFile(filePath);
 }
 
 bool Image::SaveToFile(const std::string& filePath) const
