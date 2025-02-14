@@ -73,7 +73,7 @@ int main() {
             throw std::runtime_error("Failed to load game configuration");
         }
 
-		dataManager.LoadFromFile("data/autosave.json");
+		dataManager.LoadFromFile("data/user/autosave.json");
 
         if (!winManager || winManager->GetWindows().empty()) {
             throw std::runtime_error("No windows were created from configuration");
@@ -135,7 +135,7 @@ int main() {
             winManager->DisplayAll();
         }
 
-		dataManager.SaveToFile("data/autosave.json");
+		dataManager.SaveToFile("data/user/autosave.json");
 
         return 0;
     }

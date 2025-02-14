@@ -1,6 +1,7 @@
 #include "DataManager.h"
 #include <fstream>
 #include <stdexcept>
+#include <filesystem>
 
 namespace ShoeEngine {
 namespace Core {
@@ -85,6 +86,14 @@ bool DataManager::SaveToFile(const std::string& filePath)
 				const std::string typeName = GetString(type);
 				rootJson[typeName] = managerData;
 			}
+		}
+
+		// Ensure the directory exists
+		std::filesystem::path pathObj(filePath);
+		std::filesystem::path directory = pathObj.parent_path();
+		if (!directory.empty() && !std::filesystem::exists(directory)) {
+			// Create directories if they don't exist
+			std::filesystem::create_directories(directory);
 		}
 
 		// Write the completed JSON to file

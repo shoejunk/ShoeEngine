@@ -56,3 +56,6 @@ _deps/
 # Debug files
 *.dmp
 *.log
+
+# User data files
+data/user/
