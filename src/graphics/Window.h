@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Hash.h"
 #include <SFML/Graphics.hpp>
 #include <string>
 
@@ -62,8 +63,24 @@ public:
      */
     sf::RenderWindow& GetRenderWindow();
 
+	/**
+	* @brief Gets the hash value of the window title
+	* @return Hash value of the window title
+	*/
+	Core::Hash::HashValue GetTitleHash() const { return m_titleHash; }
+
+	/**
+	* @brief Sets the hash value of the window title
+	*/
+	void SetTitleHash(Core::Hash::HashValue titleHash) { m_titleHash = titleHash; }
+
+	uint32_t GetWidth() const { return m_window.getSize().x; }
+
+	uint32_t GetHeight() const { return m_window.getSize().y; }
+
 private:
     sf::RenderWindow m_window;  ///< The SFML window instance
+	Core::Hash::HashValue m_titleHash; ///< Hash value for the window title
 };
 
 } // namespace Graphics

@@ -6,6 +6,7 @@ namespace Graphics {
 Window::Window(const std::string& title, unsigned int width, unsigned int height)
     : m_window(sf::VideoMode(width, height), title)
 {
+	m_titleHash = Core::Hash::HashValue(title);
 }
 
 Window::~Window() {

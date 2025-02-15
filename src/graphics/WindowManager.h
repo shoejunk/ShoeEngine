@@ -25,8 +25,7 @@ public:
      * @brief Constructor
      * @param dataManager Reference to the DataManager for string registration
      */
-    explicit WindowManager(Core::DataManager& dataManager) 
-        : Core::BaseManager(dataManager) {}
+	explicit WindowManager(Core::DataManager& dataManager);
 
     /**
      * @brief Destructor
@@ -68,8 +67,18 @@ public:
      */
     const std::vector<std::unique_ptr<Window>>& GetWindows() const;
 
+	/**
+	* @brief Serialize all managed windows to JSON.
+	* The resulting JSON will be an object where each key is the original window
+	* name (as provided in the input JSON) and the value is an object with
+	* properties "title", "width", and "height".
+	* @return nlohmann::json Serialized JSON object.
+	*/
+	nlohmann::json SerializeToJson() override;
+
 private:
     std::vector<std::unique_ptr<Window>> m_windows;  ///< Collection of managed windows
+	std::vector<Core::Hash::HashValue> m_windowHashes;
 };
 
 } // namespace Graphics
