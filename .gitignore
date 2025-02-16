@@ -59,3 +59,7 @@ _deps/
 
 # User data files
 data/user/
+
+# Generated files
+project_dump.txt
+project_structure.txt
