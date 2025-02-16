@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 #include "Core/DataManager.h"
 
+using namespace ShoeEngine;
 using namespace ShoeEngine::Input;
 
 TEST(InputTests, ContextActivation) {
