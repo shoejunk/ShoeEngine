@@ -120,7 +120,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         $<TARGET_FILE_DIR:${PROJECT_NAME}>
 )
 
-# Copy the data directory and sample.json to the main executable output
+# Copy the data directory and data.json to the main executable output
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/data
@@ -128,8 +128,8 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 )
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_SOURCE_DIR}/data/sample.json
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>/data/sample.json
+        ${CMAKE_SOURCE_DIR}/data/data.json
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/data/data.json
 )
 
 # --- Test Executable Setup ---

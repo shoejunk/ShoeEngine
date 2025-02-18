@@ -9,6 +9,7 @@
 #include "graphics/ImageManager.h"
 #include "graphics/SpriteManager.h"
 #include "input/InputManager.h"
+#include "bayou/BayouStateManager.h"
 #include <vector>
 
 /**
@@ -55,10 +56,10 @@ int main() {
         auto imageManager = std::make_unique<ShoeEngine::Graphics::ImageManager>(dataManager);
         auto spriteManager = std::make_unique<ShoeEngine::Graphics::SpriteManager>(dataManager, *imageManager);
         auto inputManager = std::make_unique<ShoeEngine::Input::InputManager>(dataManager);
+		auto stateManager = std::make_unique<ShoeEngine::Bayou::BayouStateManager>(dataManager);
 
         // Store raw pointers before moving
         auto* winManager = windowManager.get();
-        auto* imgManager = imageManager.get();
         auto* sprManager = spriteManager.get();
         auto* inpManager = inputManager.get();
 
@@ -67,9 +68,10 @@ int main() {
         dataManager.RegisterManager(std::move(imageManager));
         dataManager.RegisterManager(std::move(spriteManager));
         dataManager.RegisterManager(std::move(inputManager));
+		dataManager.RegisterManager(std::move(stateManager));
 
         // Load game configuration from JSON
-        if (!dataManager.LoadFromFile("data/sample.json")) {
+        if (!dataManager.LoadFromFile("data/data.json")) {
             throw std::runtime_error("Failed to load game configuration");
         }
 
