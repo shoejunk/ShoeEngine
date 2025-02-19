@@ -45,6 +45,12 @@ namespace ShoeEngine {
 			 */
 			void Render(ShoeEngine::Graphics::Window& window);
 
+			/**
+			 * @brief Handles mouse click events on the board.
+			 * @param window The window in which the click occurred.
+			 */
+			void HandleMouseClick(ShoeEngine::Graphics::Window& window);
+
 		private:
 			/**
 			 * @brief Helper function to get the image id for a given piece type.
@@ -57,8 +63,7 @@ namespace ShoeEngine {
 			ShoeEngine::Graphics::ImageManager& m_imageManager;
 			int m_tileSize;
 			int m_gridCount;
-			BoardRenderer m_boardRenderer; // Renders grid lines.
-			// Array to store sprites for each board cell.
+			BoardRenderer m_boardRenderer;
 			std::array<std::unique_ptr<ShoeEngine::Graphics::Sprite>, BayouState::kBoardNumSquares> m_pieceSprites;
 		};
 

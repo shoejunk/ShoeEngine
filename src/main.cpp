@@ -53,6 +53,11 @@ int main() {
 			// Update the visualizer to reflect the current game state.
 			stateVisualizer.Update();
 
+			// Check if the left mouse button is pressed and handle the click.
+			if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+				stateVisualizer.HandleMouseClick(*winManager->GetWindows()[0]);
+			}
+
 			// Render the game state using the visualizer.
 			stateVisualizer.Render(*winManager->GetWindows()[0]);
 

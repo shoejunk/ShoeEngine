@@ -2,6 +2,7 @@
 #include "graphics/ImageManager.h"
 #include "graphics/Sprite.h"
 #include "core/Hash.h"
+#include <SFML/Window/Mouse.hpp>
 #include <iostream>
 
 namespace ShoeEngine {
@@ -13,9 +14,8 @@ namespace ShoeEngine {
 			m_imageManager(imageManager),
 			m_tileSize(tileSize),
 			m_gridCount(gridCount),
-			m_boardRenderer(tileSize) // BoardRenderer now only needs tileSize.
+			m_boardRenderer(tileSize)
 		{
-			// Initialize sprite pointers to nullptr.
 			for (auto& spritePtr : m_pieceSprites) {
 				spritePtr = nullptr;
 			}
@@ -71,13 +71,24 @@ namespace ShoeEngine {
 		}
 
 		void BayouStateVisualizer::Render(ShoeEngine::Graphics::Window& window) {
-			// First, render the grid lines.
 			m_boardRenderer.Render(window);
-			// Then, draw the game piece sprites.
 			for (const auto& spritePtr : m_pieceSprites) {
 				if (spritePtr) {
 					window.GetRenderWindow().draw(spritePtr->GetSFMLSprite());
 				}
+			}
+		}
+
+		// New method to handle mouse clicks.
+		void BayouStateVisualizer::HandleMouseClick(ShoeEngine::Graphics::Window& window) {
+			// Get the mouse position relative to the window.
+			sf::Vector2i pixelPos = sf::Mouse::getPosition(window.GetRenderWindow());
+			int row, col;
+			// Use the BoardRenderer helper to determine if the click is inside the board.
+			if (m_boardRenderer.GetBoardCell(static_cast<float>(pixelPos.x),
+				static_cast<float>(pixelPos.y),
+				row, col)) {
+				std::cout << "Clicked board square: (" << row << ", " << col << ")" << std::endl;
 			}
 		}
 
