@@ -44,9 +44,7 @@ int main() {
 		if (!dataManager.LoadFromFile("data/data.json")) {
 			throw std::runtime_error("Failed to load game configuration");
 		}
-		//dataManager.LoadFromFile("data/user/autosave.json");
-
-		Input::Input* attackInput = inpManager->GetInput("attack"_h);
+		dataManager.LoadFromFile("data/user/autosave.json");
 
 		if (!winManager || winManager->GetWindows().empty()) {
 			throw std::runtime_error("No windows were created from configuration");
