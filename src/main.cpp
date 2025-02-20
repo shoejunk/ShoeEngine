@@ -9,42 +9,51 @@
 #include "graphics/ImageManager.h"
 #include "bayou/BayouStateManager.h"
 #include "bayou/BayouStateVisualizer.h"
+#include "Input/InputManager.h"
+#include "Input/Input.h"
 #include <vector>
+
+using namespace ShoeEngine;
 
 int main() {
 	try {
 		std::cout << "ShoeEngine initializing..." << std::endl;
 
 		// Create and configure the data manager.
-		ShoeEngine::Core::DataManager dataManager;
+		Core::DataManager dataManager;
 
 		// Create and register managers.
 		// We no longer need SpriteManager or InputManager.
-		auto windowManager = std::make_unique<ShoeEngine::Graphics::WindowManager>(dataManager);
-		auto imageManager = std::make_unique<ShoeEngine::Graphics::ImageManager>(dataManager);
-		auto stateManager = std::make_unique<ShoeEngine::Bayou::BayouStateManager>(dataManager);
+		auto windowManager = std::make_unique<Graphics::WindowManager>(dataManager);
+		auto imageManager = std::make_unique<Graphics::ImageManager>(dataManager);
+		auto stateManager = std::make_unique<Bayou::BayouStateManager>(dataManager);
+		auto inputManager = std::make_unique<Input::InputManager>(dataManager);
 
 		// Save raw pointers before transferring ownership.
 		auto* winManager = windowManager.get();
 		auto* imgManager = imageManager.get();
 		auto* bayouStateManager = stateManager.get();
+		auto* inpManager = inputManager.get();
 
 		dataManager.RegisterManager(std::move(windowManager));
 		dataManager.RegisterManager(std::move(imageManager));
 		dataManager.RegisterManager(std::move(stateManager));
+		dataManager.RegisterManager(std::move(inputManager));
 
 		// Load game configuration from JSON.
 		if (!dataManager.LoadFromFile("data/data.json")) {
 			throw std::runtime_error("Failed to load game configuration");
 		}
-		dataManager.LoadFromFile("data/user/autosave.json");
+		//dataManager.LoadFromFile("data/user/autosave.json");
+
+		Input::Input* attackInput = inpManager->GetInput("attack"_h);
 
 		if (!winManager || winManager->GetWindows().empty()) {
 			throw std::runtime_error("No windows were created from configuration");
 		}
 
 		// Create the BayouStateVisualizer, using the loaded Bayou state and ImageManager.
-		ShoeEngine::Bayou::BayouStateVisualizer stateVisualizer(bayouStateManager->GetState(), *imgManager);
+		Bayou::BayouStateVisualizer stateVisualizer(bayouStateManager->GetState(), *imgManager);
 
 		// Main game loop
 		while (winManager->ProcessEvents()) {

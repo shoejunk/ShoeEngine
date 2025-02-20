@@ -2,39 +2,55 @@
 #include "input/Input.h"
 #include "input/InputManager.h"
 #include <nlohmann/json.hpp>
-#include "Core/DataManager.h"
+#include "core/DataManager.h"
 
 using namespace ShoeEngine;
 using namespace ShoeEngine::Input;
 
-TEST(InputTests, ContextActivation) {
-	Core::DataManager dm;
-	KeyboardInput input("test"_h);
+TEST(InputManagerTest, ContextFiltering) {
+    Core::DataManager dm;
+    InputManager im(dm);
 
-	input.SetContext(dm.RegisterString("combat"));
+    nlohmann::json jsonData = {
+        {"combat", {
+            {
+                {"name", "attack"},
+                {"type", "keyboard"},
+                {"key", "space"}
+            }
+        }},
+        {"menu", {
+            {
+                {"name", "menu_select"},
+                {"type", "keyboard"},
+                {"key", "enter"}
+            }
+        }}
+    };
 
-	// Test matching context
-	EXPECT_TRUE(input.IsActive(dm.RegisterString("combat")));
+    ASSERT_TRUE(im.CreateFromJson(jsonData));
 
-	// Test non-matching context
-	EXPECT_FALSE(input.IsActive(dm.RegisterString("menu")));
-}
+    // Test without any context
+    EXPECT_EQ(im.GetInput("attack"_h), nullptr);
+    EXPECT_EQ(im.GetInput("menu_select"_h), nullptr);
 
-TEST(InputManagerTests, ContextFiltering) {
-	Core::DataManager dm;
-	InputManager im(dm);
+    // Test with combat context
+    im.PushContext("combat");
+    auto* attackInput = im.GetInput("attack"_h);
+    ASSERT_NE(attackInput, nullptr);
+    EXPECT_EQ(im.GetInput("menu_select"_h), nullptr);
 
-	nlohmann::json jsonData = { {
-		{"name", "attack"},
-		{"type", "keyboard"},
-		{"key", "space"},
-		{"context", "combat"}
-	} };
+    // Pop combat context before pushing menu context
+    im.PopContext();
 
-	im.CreateFromJson(jsonData);
-	im.SetContext(dm.RegisterString("menu"));
+    // Test with menu context
+    im.PushContext("menu");
+    auto* menuInput = im.GetInput("menu_select"_h);
+    ASSERT_NE(menuInput, nullptr);
+    EXPECT_EQ(im.GetInput("attack"_h), nullptr);
 
-	auto* input = im.GetInput("attack"_h);
-	ASSERT_NE(input, nullptr);
-	EXPECT_FALSE(input->IsActive(im.GetCurrentContext()));
+    // Test popping context
+    im.PopContext();
+    EXPECT_EQ(im.GetInput("attack"_h), nullptr);
+    EXPECT_EQ(im.GetInput("menu_select"_h), nullptr);
 }
