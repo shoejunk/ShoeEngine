@@ -1,4 +1,4 @@
-MSBuild version 17.12.12+1cce77968 for .NET Framework
+MSBuild version 17.13.9+e0f243f1e for .NET Framework
 
   sfml-system.vcxproj -> C:\dev\ShoeEngine\build\_deps\sfml-build\lib\Release\sfml-system-2.dll
   sfml-audio.vcxproj -> C:\dev\ShoeEngine\build\_deps\sfml-build\lib\Release\sfml-audio-2.dll
@@ -9,7 +9,6 @@ MSBuild version 17.12.12+1cce77968 for .NET Framework
   ShoeEngine.vcxproj -> C:\dev\ShoeEngine\build\bin\Release\ShoeEngine.exe
   gtest.vcxproj -> C:\dev\ShoeEngine\build\bin\Release\gtest.dll
   gtest_main.vcxproj -> C:\dev\ShoeEngine\build\bin\Release\gtest_main.dll
-  InputTests.cpp
   ShoeEngine_tests.vcxproj -> C:\dev\ShoeEngine\build\bin\Release\ShoeEngine_tests.exe
   gmock.vcxproj -> C:\dev\ShoeEngine\build\bin\Release\gmock.dll
   gmock_main.vcxproj -> C:\dev\ShoeEngine\build\bin\Release\gmock_main.dll

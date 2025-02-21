@@ -110,7 +110,7 @@ Study these files as examples of proper implementation:
 4. The project uses C++17 features
 5. To generate the project files, use the bat file: `./generate.bat`
 6. To build the project, use the bat file: `./build.bat`. The output will go to build_output.txt
-7. To run tests, use the bat file: `./test.bat`. You always need to build first before running tests.
+7. To run tests, use the bat file: `./test.bat`. You always need to build first before running tests. The output will go to test_output.txt
 8. To run the release version of the project, use the bat file: `./release.bat`
 9. To run the debug version of the project, use the bat file: `./debug.bat`
 

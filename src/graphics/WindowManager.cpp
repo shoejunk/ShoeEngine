@@ -13,49 +13,49 @@ WindowManager::WindowManager(Core::DataManager& dataManager)
 }
 
 bool WindowManager::CreateFromJson(const nlohmann::json& jsonData) {
+    if (!jsonData.is_object()) {
+        return false;
+    }
+
     try {
         for (const auto& [windowName, windowConfig] : jsonData.items()) {
-			bool makeNew = true;
-			size_t windowIndex = 0;
+            if (!windowConfig.is_object()) {
+                return false;
+            }
 
-			// Check if the window name is already registered
-			for (size_t i = 0; i < m_windowHashes.size(); ++i) {
-				Core::Hash::HashValue window = m_windowHashes[i];
-				if (window == Core::Hash::HashValue(windowName)) {
-					makeNew = false;
-					windowIndex = i;
-					break;
-				}
-			}
+            bool makeNew = true;
+            size_t windowIndex = 0;
 
-			// Handle both empty and non-empty JSON objects
-            const nlohmann::json& config = windowConfig.is_object() ? windowConfig : nlohmann::json::object();
-            
-            // Use value() with default values for optional fields
-            std::string title = config.value("title", "ShoeEngine Window");
-			Core::Hash::HashValue titleHash = m_dataManager.RegisterString(title);
-            unsigned int width = config.value<unsigned int>("width", 800);
-            unsigned int height = config.value<unsigned int>("height", 600);
+            // Check if the window name is already registered
+            for (size_t i = 0; i < m_windowHashes.size(); ++i) {
+                Core::Hash::HashValue window = m_windowHashes[i];
+                if (window == Core::Hash::HashValue(windowName)) {
+                    makeNew = false;
+                    windowIndex = i;
+                    break;
+                }
+            }
 
-			// Register the window name with DataManager to obtain a hash for later retrieval.
-			Core::Hash::HashValue windowHash = m_dataManager.RegisterString(windowName);
-			m_windowHashes.push_back(windowHash);
+            // Use default values for optional fields
+            std::string title = windowConfig.value("title", "ShoeEngine Window");
+            Core::Hash::HashValue titleHash = m_dataManager.RegisterString(title);
+            unsigned int width = windowConfig.value<unsigned int>("width", 800);
+            unsigned int height = windowConfig.value<unsigned int>("height", 600);
 
-			if (makeNew) {
-				m_windows.push_back(std::make_unique<Window>(title, width, height));
-			}
-			else {
-				// Update the existing window
-				auto& window = m_windows[windowIndex];
-				window->SetTitleHash(titleHash);
-				window->GetRenderWindow().setTitle(title);
-				window->GetRenderWindow().setSize(sf::Vector2u(width, height));
-			}
+            Core::Hash::HashValue windowHash = m_dataManager.RegisterString(windowName);
+            m_windowHashes.push_back(windowHash);
+
+            if (makeNew) {
+                m_windows.push_back(std::make_unique<Window>(title, width, height));
+            } else {
+                auto& window = m_windows[windowIndex];
+                window->SetTitleHash(titleHash);
+                window->GetRenderWindow().setTitle(title);
+                window->GetRenderWindow().setSize(sf::Vector2u(width, height));
+            }
         }
         return true;
-    }
-    catch (const std::exception&) {
-        // Log error here when logging system is implemented
+    } catch (const std::exception&) {
         return false;
     }
 }

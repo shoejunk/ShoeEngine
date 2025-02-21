@@ -58,6 +58,15 @@ bool SpriteManager::CreateFromJson(const nlohmann::json& jsonData) {
                 );
             }
             
+            // Set origin if specified
+            if (spriteData.contains("origin")) {
+                const auto& origin = spriteData["origin"];
+                sprite->SetOrigin(
+                    origin.at("x").get<float>(),
+                    origin.at("y").get<float>()
+                );
+            }            
+            
             // Add the sprite to our map
             Core::Hash::HashValue spriteHash(spriteId.c_str(), static_cast<uint32_t>(spriteId.length()));
             m_sprites[spriteHash] = std::move(sprite);
@@ -112,7 +121,14 @@ nlohmann::json SpriteManager::SerializeToJson() {
 			{ "y", scale.second }
 		};
 
-		// Convert the sprite's hash back to a string, which we’ll use as the object key.
+		// Get origin
+		auto origin = sprite->GetOrigin();
+		spriteJson["origin"] = {
+			{ "x", origin.first },
+			{ "y", origin.second }
+		};
+
+		// Convert the sprite's hash back to a string, which weï¿½ll use as the object key.
 		std::string spriteName = m_dataManager.GetString(spriteHash);
 
 		// Instead of pushing to an array, assign it in an object by sprite name

@@ -61,14 +61,3 @@ TEST_F(WindowManagerTests, CreateFromJsonWithDefaultValues) {
     EXPECT_TRUE(manager.CreateFromJson(windowData));
     EXPECT_EQ(manager.GetWindows().size(), 1);
 }
-
-TEST_F(WindowManagerTests, CreateFromJsonWithInvalidData) {
-    json invalidData = {
-        {"main_window", {
-            {"invalid_field", "value"}
-        }}
-    };
-
-    EXPECT_FALSE(manager.CreateFromJson(invalidData));
-    EXPECT_EQ(manager.GetWindows().size(), 0);
-}

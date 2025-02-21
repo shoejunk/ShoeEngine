@@ -60,10 +60,6 @@ _deps/
 # User data files
 data/user/
 
-# Build outputs
-test_output.txt
-build_output.txt
-
 # Generated files
 project_dump.txt
 project_structure.txt
